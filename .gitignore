@@ -1,0 +1,6 @@
+.edge-profile/
+.chrome-profile/
+__pycache__/
+.pytest_cache/
+alex-screenshot.png
+*.log

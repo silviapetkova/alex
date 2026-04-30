@@ -1,0 +1,19 @@
+{
+  "name": "Alex",
+  "short_name": "Alex",
+  "description": "A soft, cozy personal journal and planner app.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fffdf7",
+  "theme_color": "#ffc8cb",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./assets/alex-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
