@@ -80,6 +80,8 @@ let state = {
   redoPaths: [],
   page: 1,
   query: "",
+  activeInspectorTab: "Pens",
+  journalMenuOpen: false,
 };
 
 try {
@@ -137,6 +139,8 @@ function normalizeState() {
   if (!state.penPreset) state.penPreset = "gel";
   if (!state.penWidth) state.penWidth = 4;
   if (!state.zoom) state.zoom = 1;
+  if (!state.activeInspectorTab) state.activeInspectorTab = "Pens";
+  if (typeof state.journalMenuOpen !== "boolean") state.journalMenuOpen = false;
   if (typeof state.panX !== "number") state.panX = 0;
   if (typeof state.panY !== "number") state.panY = 0;
   if (!state.redoPaths) state.redoPaths = [];
@@ -198,7 +202,14 @@ function render() {
       <header class="topbar">
         <div class="brand">Alex<span>&hearts;</span></div>
         <button class="icon-button" aria-label="Menu">${icon("menu")}</button>
-        <button class="journal-switch">${journal.title}<span>${icon("down")}</span></button>
+        <div class="journal-switch-wrap">
+          <button class="journal-switch" data-action="toggle-journal-menu" aria-expanded="${state.journalMenuOpen ? "true" : "false"}">${journal.title}<span>${icon("down")}</span></button>
+          ${state.journalMenuOpen ? `
+            <div class="journal-menu" role="menu" aria-label="Switch notebook">
+              ${currentJournals().map((item) => `<button class="journal-menu-item ${item.id === journal.id ? "selected" : ""}" data-journal="${item.id}" role="menuitem">${escapeHtml(item.title)}</button>`).join("")}
+            </div>
+          ` : ""}
+        </div>
         <div class="toolstrip" aria-label="Main tools">
           ${toolButton("pointer", "Select", "select")}
           ${toolButton("pen", "Pen", "pen")}
@@ -267,7 +278,7 @@ function leftPanel(activeJournal) {
           ${currentJournals().map((journal) => `
             <button class="journal-row ${activeJournal.id === journal.id ? "selected" : ""}" data-journal="${journal.id}">
               <span class="cover ${journal.cover}"></span>
-              <span><strong>${journal.title}</strong><small>${journal.pages.length} pages</small></span>
+              <span><strong>${journal.title}</strong><small>${journal.pages.length === 1 ? "1 page" : `${journal.pages.length} pages`}</small></span>
             </button>
           `).join("")}
         </div>
@@ -295,25 +306,45 @@ function rightPanel(journal, pageData) {
   const visibleStickers = stickers.filter((sticker) => !state.query || sticker.toLowerCase().includes(state.query.toLowerCase()));
   return `
     <aside class="right-panel">
-      <div class="asset-tabs">${["Pens", "Paper", "Marks", "Pages"].map((tab, index) => `<button class="${index === 0 ? "active" : ""}">${tab}</button>`).join("")}</div>
-      ${panelSection("Handwriting", `
-        <div class="pen-preview">
-          <span style="background:${state.activeTool === "highlighter" || state.penPreset === "highlighter" ? toHighlighter(state.activeColor) : state.activeColor};height:${Math.max(3, state.penWidth)}px"></span>
-          <strong>${toolLabel()}</strong>
-        </div>
-        <div class="preset-grid">
-          ${penPresets.map((preset) => `<button class="${state.penPreset === preset.id ? "selected" : ""}" data-preset="${preset.id}">${preset.label}</button>`).join("")}
-        </div>
-        <label class="range-row"><span>Stroke</span><input id="pen-width" type="range" min="1" max="18" value="${state.penWidth}" /></label>
-      `)}
-      ${panelSection("Ink Colors", `<div class="color-grid">${colors.map((color) => `<button class="${state.activeColor === color ? "selected" : ""}" style="background:${color}" data-color="${color}"></button>`).join("")}</div>`)}
+      <div class="asset-tabs" role="tablist" aria-label="Inspector tabs">${["Pens", "Paper", "Marks", "Pages"].map((tab) => `<button class="${state.activeInspectorTab === tab ? "active" : ""}" data-inspector-tab="${tab}" role="tab" aria-selected="${state.activeInspectorTab === tab ? "true" : "false"}">${tab}</button>`).join("")}</div>
+      ${inspectorTabContent(state.activeInspectorTab, journal, pageData, visibleStickers)}
+    </aside>
+  `;
+}
+
+function inspectorTabContent(tab, journal, pageData, visibleStickers) {
+  if (tab === "Paper") {
+    return `
       ${panelSection("Paper", `<div class="paper-grid">${paperStyles.map((paper) => `<button class="${state.activePaper === paper.id ? "selected" : ""}" data-paper="${paper.id}"><span class="paper-sample ${paper.id}"></span>${paper.label}</button>`).join("")}</div>`)}
-      ${panelSection("Selection", selectionControls())}
       ${panelSection("Pages", pageList(journal, pageData))}
+    `;
+  }
+
+  if (tab === "Marks") {
+    return `
       <label class="search-box">${icon("search")}<input id="sticker-search" value="${state.query}" placeholder="Search marks" /></label>
       ${panelSection("Margin Marks", stickerGrid(visibleStickers))}
       ${panelSection("Washi Tape", `<div class="tape-grid">${tapes.map((tape) => `<button class="${tape}" data-sticker="&#9644;" aria-label="${tape} tape"></button>`).join("")}</div>`)}
-    </aside>
+    `;
+  }
+
+  if (tab === "Pages") {
+    return `${panelSection("Pages", pageList(journal, pageData))}`;
+  }
+
+  return `
+    ${panelSection("Handwriting", `
+      <div class="pen-preview">
+        <span style="background:${state.activeTool === "highlighter" || state.penPreset === "highlighter" ? toHighlighter(state.activeColor) : state.activeColor};height:${Math.max(3, state.penWidth)}px"></span>
+        <strong>${toolLabel()}</strong>
+      </div>
+      <div class="preset-grid">
+        ${penPresets.map((preset) => `<button class="${state.penPreset === preset.id ? "selected" : ""}" data-preset="${preset.id}">${preset.label}</button>`).join("")}
+      </div>
+      <label class="range-row"><span>Stroke</span><input id="pen-width" type="range" min="1" max="18" value="${state.penWidth}" /></label>
+    `)}
+    ${panelSection("Ink Colors", `<div class="color-grid">${colors.map((color) => `<button class="${state.activeColor === color ? "selected" : ""}" style="background:${color}" data-color="${color}"></button>`).join("")}</div>`)}
+    ${panelSection("Selection", selectionControls())}
   `;
 }
 
@@ -467,6 +498,14 @@ function bind() {
     button.addEventListener("click", () => switchPage(button.dataset.page));
   });
 
+  document.querySelectorAll("[data-inspector-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeInspectorTab = button.dataset.inspectorTab;
+      render();
+      persist();
+    });
+  });
+
   document.querySelectorAll("[data-template]").forEach((button) => {
     button.addEventListener("click", () => {
       state.activeTemplate = button.dataset.template;
@@ -567,6 +606,7 @@ function bind() {
 }
 
 function handleAction(action) {
+  if (action === "toggle-journal-menu") state.journalMenuOpen = !state.journalMenuOpen;
   if (action === "undo") undoInk();
   if (action === "redo") redoInk();
   if (action === "zoom-in") setZoom(state.zoom + 0.1);
@@ -637,6 +677,7 @@ function addElement(type, value) {
 function switchJournal(journalId) {
   capturePageState();
   state.activeJournal = journalId;
+  state.journalMenuOpen = false;
   const journal = currentJournal();
   loadPageIntoState(journal.pages[0]);
   state.page = 1;

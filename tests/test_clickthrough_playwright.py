@@ -58,6 +58,8 @@ def test_alex_notebook_clickthrough(app_url):
         assert page.title() == "Alex"
         assert "Alex" in page.locator(".brand").inner_text()
 
+        page.locator('[data-inspector-tab="Pages"]').click()
+        assert page.locator(".page-actions").count() == 1
         initial_pages = page.locator(".page-row").count()
         page.locator('[data-action="new-page"]').click()
         assert page.locator(".page-row").count() == initial_pages + 1
@@ -68,14 +70,29 @@ def test_alex_notebook_clickthrough(app_url):
         page.locator('[data-action="move-page-up"]').click()
         assert page.locator('[data-testid="page-indicator"]').inner_text()
 
+        page.locator('[data-action="toggle-journal-menu"]').click()
+        assert page.locator(".journal-menu").is_visible()
+        journal_menu_items = page.locator(".journal-menu-item")
+        assert journal_menu_items.count() >= 2
+        current_journal_title = page.locator(".journal-switch").inner_text()
+        journal_menu_items.nth(1).click()
+        assert page.locator(".journal-switch").inner_text() != current_journal_title
+        assert page.locator(".journal-menu").count() == 0
+
+        page.locator('[data-inspector-tab="Pens"]').click()
         page.locator('[data-preset="pencil"]').click()
         assert "selected" in page.locator('[data-preset="pencil"]').get_attribute("class")
 
+        page.locator('[data-inspector-tab="Paper"]').click()
         page.locator('[data-paper="dot"]').click()
         assert "paper-dot" in page.locator("#book-spread").get_attribute("class")
 
         page.locator('[data-cover="mint"]').click()
         assert "selected" in page.locator('[data-cover="mint"]').get_attribute("class")
+
+        page.locator('[data-inspector-tab="Marks"]').click()
+        assert page.locator("#sticker-search").count() == 1
+        assert page.locator(".page-actions").count() == 0
 
         page.locator('[data-action="zoom-in"]').click()
         assert "110%" in page.locator('[data-testid="zoom-readout"]').inner_text()
@@ -83,6 +100,7 @@ def test_alex_notebook_clickthrough(app_url):
         assert "100%" in page.locator('[data-testid="zoom-readout"]').inner_text()
 
         page.locator('[data-sticker]').first.click()
+        page.locator('[data-inspector-tab="Pens"]').click()
         assert page.locator("#element-size").count() == 1
         page.locator("#element-size").evaluate("(input) => { input.value = 55; input.dispatchEvent(new Event('input', { bubbles: true })); }")
         selected_font_size = page.locator("[data-element].selected").evaluate(
