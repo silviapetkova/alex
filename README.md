@@ -15,32 +15,71 @@ Then visit `http://127.0.0.1:4173`.
 ## What Works Now
 
 - Local journal workspace
+- First-launch onboarding with optional Start Here sample notebook
+- Cozy notebook library/home screen
+- Continue writing and open notebook actions
+- Search notebooks and pages by title
+- Settings screen for theme, default paper, default pen, and startup screen
+- Tablet/iPad layout polish with larger touch targets
+- Mobile/iPad QA polish for wrapping page controls, scrollable tool strips, and responsive panels
 - New journal creation
 - Real notebooks with separately saved pages
+- Visual page previews in notebook cards and the Pages panel
+- Direct page search results from the library
+- Desktop/iPad keyboard shortcuts for search, navigation, new page, zoom, undo, and redo
 - Page list with page switching
 - New, duplicated, renamed, and deleted pages
 - Page reorder controls
 - Notebook rename
+- Safe notebook deletion with last-notebook protection
 - Notebook cover selection
 - Full notebook backup and import as Alex JSON files
+- Full notebook PDF export through a print-ready view
+- PDF import as movable notebook page attachments
+- Export current page as PNG
+- Clear export panel for page exports, notebook backups, and restores
 - Handwritten notebook defaults
 - Pen, highlighter, and eraser drawing
+- Safer touch drawing that avoids accidental page scrolling
+- iPad-safe drawing coordinates for Pencil/finger writing and dragged page objects
+- Hardened iPad Pencil/touch handling with one active pointer, smoother movement events, and less accidental page scrolling
+- Safari/iPad document-coordinate mapping to reduce vertical Pencil offset
+- Ink Alignment controls for tuning Pencil offset directly on iPad Safari
+- Pen Calibration target that measures iPad Pencil offset from the notebook page
+- Full-spread ink overlay and book-relative pointer mapping for more accurate iPad Safari writing
+- Pen Diagnostics readout for real iPad Safari coordinate debugging
+- Canvas sizing locked to the visible book spread for iPad Pencil accuracy
+- Pressure-aware Pencil strokes with small jitter filtering for smoother handwriting
+- Writing lock that prevents page scroll, text selection, and touch callouts during active Pencil strokes
+- Two-finger pinch zoom on the notebook surface
+- Inactive footer view buttons disabled so they cannot steal Pencil touches
+- Marks switch into Select mode after placement so they can be moved and resized
+- Top Marks tool opens the Marks panel for the same placement flow as the sidebar
+- iPad editor keeps the inspector panel on the right side instead of pushing it below the notebook
+- Tablet editor breakpoint also keeps the inspector on the right instead of below the canvas
+- Top Text tool creates and focuses a new editable note
 - Pen presets: gel pen, pencil, marker, and highlighter
 - Smoothed stroke rendering
-- Ink undo and redo
+- Per-page snapshot undo and redo for ink, objects, paper, and templates
 - Stroke width control
 - Canvas zoom and reset view
-- Selection resize, nudge, and delete controls for page objects
+- Selection resize, rotate, duplicate, layer, nudge, and delete controls for page objects
 - Lined, dot grid, grid, and blank paper styles
 - Stickers, washi-style marks, text notes, and imported images
+- Imported PDF attachments saved locally with notebook pages
 - Template switching
 - Local autosave
+- Last-saved status and gentle local backup reminders
+- Gentle in-app success messages for page, settings, import, export, and backup actions
+- Safer clear-handwriting confirmation before removing page ink
 - Export current page data as JSON
 - Install/offline metadata when served through a local web server
 
 ## iPad Path
 
 This is built as a touch-first web app so the product shape can be tested quickly. A later iPad version can reuse the workflow and visuals, then move the drawing layer to native PencilKit for better Apple Pencil feel.
+
+For a first real iPad test over Wi-Fi, double-click `start-ipad-server.bat`, then open the address from `IPAD_TESTING.md` in Safari on the iPad.
 
 ## Tests
 

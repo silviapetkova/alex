@@ -2,5 +2,6 @@
 .chrome-profile/
 __pycache__/
 .pytest_cache/
+.venv/
 alex-screenshot.png
 *.log
