@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 alex-screenshot.png
 *.log
+video-frames/
+.alex-checkpoints/
