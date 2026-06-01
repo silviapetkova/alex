@@ -1,4 +1,5 @@
 const STORAGE_KEY = "alex-journal-prototype";
+const APP_VERSION = "v3";
 
 const templates = [
   { title: "Notebook Pages", count: 18, template: "notebook", icon: "&#9636;" },
@@ -23,6 +24,13 @@ const themeStyles = [
   { id: "blush", label: "Blush Cozy", note: "Warm pink paper desk" },
   { id: "mint", label: "Mint Calm", note: "Fresh green study corner" },
   { id: "sky", label: "Sky Study", note: "Soft blue focus space" },
+];
+const railSections = [
+  { icon: "book", label: "Pages", tab: "Pages" },
+  { icon: "pen", label: "Pens", tab: "Pens" },
+  { icon: "palette", label: "Paper", tab: "Paper" },
+  { icon: "heart", label: "Marks", tab: "Marks" },
+  { icon: "file", label: "Export", tab: "Export" },
 ];
 const penPresets = [
   { id: "gel", label: "Gel Pen", width: 4, alpha: 1, composite: "source-over" },
@@ -324,7 +332,7 @@ function render() {
   const pageIndex = journal.pages.findIndex((page) => page.id === pageData.id);
   root.innerHTML = `
     <div class="app-shell">
-      <input class="hidden-file" id="image-import" type="file" accept="image/*" />
+      <input id="image-import" type="file" accept="image/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
       <input class="hidden-file" id="pdf-import" type="file" accept="application/pdf,.pdf" />
       <input class="hidden-file" id="notebook-import" type="file" accept="application/json,.json" />
       <header class="topbar">
@@ -345,32 +353,31 @@ function render() {
           ${toolButton("erase", "Erase", "erase")}
           ${toolButton("text", "Text", "text")}
           ${toolButton("sticker", "Marks", "sticker")}
-          ${toolButton("image", "Image", "image")}
+          ${imageToolButton()}
         </div>
         <div class="top-actions">
           <button class="icon-button" data-action="undo" aria-label="Undo">${icon("undo")}</button>
           <button class="icon-button" data-action="redo" aria-label="Redo">${icon("redo")}</button>
           <button class="export-button" data-action="export-page-png">${icon("export")}<span>Export PNG</span></button>
           <div class="save-status">${icon("save")}<span id="save-note">${saveStatusText()}</span></div>
+          <div class="build-badge">${APP_VERSION}</div>
         </div>
       </header>
       <main class="workspace">
         ${leftPanel(journal)}
         <section class="canvas-zone">
           <div class="journal-stage">
-            <div class="stage-transform" id="stage-transform" style="transform: translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})">
+            <div class="stage-transform" id="stage-transform" style="${cameraStyle()}">
               <div class="book-spread paper-${state.activePaper}" id="book-spread">
                 <div class="page left-page">${pageTemplate("left")}</div>
                 <div class="page right-page">${pageTemplate("right")}</div>
                 <canvas class="ink-layer ${isDrawingTool() ? "" : "inactive"}" id="ink-layer"></canvas>
                 ${state.calibrationMode ? calibrationTargetHtml() : ""}
-                <div id="elements-layer"></div>
+                <div id="elements-layer" class="object-layer ${isDrawingTool() ? "drawing-inactive" : ""}"></div>
               </div>
             </div>
           </div>
           <div class="page-footer">
-            <button class="icon-button muted" disabled aria-label="Grid view">${icon("grid")}</button>
-            <button class="icon-button active-soft" disabled aria-label="Book view">${icon("book")}</button>
             <button class="icon-button" data-action="zoom-out" aria-label="Zoom out">-</button>
             <button class="page-select zoom-readout" data-testid="zoom-readout">${Math.round(state.zoom * 100)}%</button>
             <button class="icon-button" data-action="zoom-in" aria-label="Zoom in">+</button>
@@ -607,15 +614,28 @@ function toolButton(iconName, label, tool) {
   return `<button class="tool-button${active}" data-tool="${tool}"><span class="tool-icon">${icon(iconName)}</span><span>${label}</span></button>`;
 }
 
+function imageToolButton() {
+  return `<label class="tool-button" data-image-tool="true" for="image-import" role="button" tabindex="0"><span class="tool-icon">${icon("image")}</span><span>Image</span></label>`;
+}
+
 function isDrawingTool() {
   return ["pen", "highlighter", "erase"].includes(state.activeTool);
+}
+
+function cameraStyle() {
+  const inverse = 1 / (state.zoom || 1);
+  return `--camera-scale:${state.zoom};--inverse-camera-scale:${inverse};transform: translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
 }
 
 function leftPanel(activeJournal) {
   return `
     <aside class="left-panel">
       <nav class="rail-icons" aria-label="Sections">
-        ${["book", "pen", "palette", "heart", "file"].map((name, index) => `<button class="rail-button ${index === 0 ? "active" : ""}" aria-label="Section">${icon(name)}</button>`).join("")}
+        ${railSections.map((section) => `
+          <button class="rail-button ${state.activeInspectorTab === section.tab ? "active" : ""}" data-inspector-tab="${section.tab}" aria-label="${section.label}" title="${section.label}">
+            ${icon(section.icon)}
+          </button>
+        `).join("")}
       </nav>
       <div class="library">
         <div class="panel-heading"><span>Notebooks</span><button data-action="new-journal" aria-label="New notebook">${icon("plus")}</button></div>
@@ -670,7 +690,7 @@ function inspectorTabContent(tab, journal, pageData, visibleStickers) {
     return `
       <label class="search-box">${icon("search")}<input id="sticker-search" value="${state.query}" placeholder="Search marks" /></label>
       ${panelSection("Margin Marks", stickerGrid(visibleStickers))}
-      ${panelSection("Washi Tape", `<div class="tape-grid">${tapes.map((tape) => `<button class="${tape}" data-sticker="&#9644;" aria-label="${tape} tape"></button>`).join("")}</div>`)}
+      ${panelSection("Washi Tape", `<div class="tape-grid">${tapes.map((tape) => `<button class="${tape}" data-tape="${tape}" aria-label="${tape} tape"></button>`).join("")}</div>`)}
     `;
   }
 
@@ -949,26 +969,32 @@ function bind() {
   window.onkeydown = handleKeyboardShortcut;
 
   document.querySelectorAll("[data-tool]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const tool = button.dataset.tool;
-      if (tool === "text") {
-        state.activeTool = "select";
-        state.activeInspectorTab = "Pens";
-        pendingFocusElementId = addElement("text", "New note");
-      } else if (tool === "image") {
-        state.activeTool = "select";
-        document.getElementById("image-import")?.click();
-        persist();
-        return;
-      } else if (tool === "sticker") {
-        state.activeTool = "select";
-        state.activeInspectorTab = "Marks";
-        showNotice("Choose a mark from the panel");
-      } else {
-        state.activeTool = tool;
-      }
-      render();
-      persist();
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      button.dataset.lastToolPress = String(Date.now());
+      runToolAction(button.dataset.tool);
+    });
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const lastPress = Number(button.dataset.lastToolPress || 0);
+      if (Date.now() - lastPress < 500) return;
+      runToolAction(button.dataset.tool);
+    });
+  });
+
+  document.querySelectorAll("[data-image-tool]").forEach((button) => {
+    const prepareImageImport = () => {
+      state.activeTool = "select";
+    };
+    button.addEventListener("pointerdown", prepareImageImport);
+    button.addEventListener("click", prepareImageImport);
+    button.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      prepareImageImport();
+      document.getElementById("image-import")?.click();
     });
   });
 
@@ -1017,6 +1043,16 @@ function bind() {
     });
   });
 
+  document.querySelectorAll("[data-tape]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeTool = "select";
+      addElement("tape", button.dataset.tape);
+      state.selectedId = null;
+      render();
+      persist();
+    });
+  });
+
   document.querySelectorAll("[data-color]").forEach((button) => {
     button.addEventListener("click", () => {
       state.activeColor = button.dataset.color;
@@ -1047,12 +1083,18 @@ function bind() {
   });
 
   document.querySelectorAll("[data-cover]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const journal = currentJournal();
-      journal.cover = button.dataset.cover;
-      journal.meta = "Cover updated";
-      render();
-      persist();
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      button.dataset.lastCoverPress = String(Date.now());
+      runCoverAction(button.dataset.cover);
+    });
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const lastPress = Number(button.dataset.lastCoverPress || 0);
+      if (Date.now() - lastPress < 500) return;
+      runCoverAction(button.dataset.cover);
     });
   });
 
@@ -1072,12 +1114,7 @@ function bind() {
   if (pendingFocusElementId) {
     const id = pendingFocusElementId;
     pendingFocusElementId = null;
-    requestAnimationFrame(() => {
-      const element = document.querySelector(`[data-element="${CSS.escape(id)}"]`);
-      if (!element) return;
-      element.focus?.();
-      if (element.tagName === "TEXTAREA") element.select?.();
-    });
+    focusElementSoon(id, true);
   }
 
   document.querySelectorAll("[data-setting-key]").forEach((button) => {
@@ -1159,6 +1196,54 @@ function bind() {
 
   const notebookImport = document.getElementById("notebook-import");
   if (notebookImport) notebookImport.addEventListener("change", importNotebook);
+  const pageFooter = document.querySelector(".page-footer");
+  if (pageFooter) {
+    pageFooter.addEventListener("contextmenu", (event) => event.preventDefault());
+    pageFooter.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "pen") return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, { capture: true });
+  }
+  document.onselectionchange = clearAccidentalSelection;
+}
+
+function runToolAction(tool) {
+  if (tool === "text") {
+    state.activeTool = "select";
+    state.activeInspectorTab = "Pens";
+    pendingFocusElementId = addElement("text", "New note");
+  } else if (tool === "image") {
+    state.activeTool = "select";
+    document.getElementById("image-import")?.click();
+    persist();
+    return;
+  } else if (tool === "sticker") {
+    state.activeTool = "select";
+    state.activeInspectorTab = "Marks";
+    showNotice("Choose a mark from the panel");
+  } else {
+    state.activeTool = tool;
+    if (isDrawingTool()) state.selectedId = null;
+  }
+  render();
+  persist();
+}
+
+function runCoverAction(cover) {
+  if (!cover || !coverStyles.includes(cover)) return;
+  const journal = currentJournal();
+  journal.cover = cover;
+  journal.meta = "Cover updated";
+  render();
+  persist();
+}
+
+function clearAccidentalSelection() {
+  const active = document.activeElement;
+  if (active?.matches?.("input, textarea, [contenteditable='true']")) return;
+  const selection = window.getSelection?.();
+  if (selection && !selection.isCollapsed) selection.removeAllRanges();
 }
 
 function handleAction(action, event) {
@@ -1184,8 +1269,8 @@ function handleAction(action, event) {
   if (action === "toggle-journal-menu") state.journalMenuOpen = !state.journalMenuOpen;
   if (action === "undo") undoInk();
   if (action === "redo") redoInk();
-  if (action === "zoom-in") setZoom(state.zoom + 0.1);
-  if (action === "zoom-out") setZoom(state.zoom - 0.1);
+  if (action === "zoom-in") setZoom(state.zoom + 0.1, stageCenterPoint());
+  if (action === "zoom-out") setZoom(state.zoom - 0.1, stageCenterPoint());
   if (action === "reset-view") resetView();
   if (action === "ink-align-up") adjustInkAlignment(0, -12);
   if (action === "ink-align-down") adjustInkAlignment(0, 12);
@@ -1218,6 +1303,14 @@ function handleAction(action, event) {
   if (action === "delete-element") {
     pushHistory();
     deleteSelectedElement();
+  }
+  if (action === "shrink-element") {
+    pushHistory();
+    resizeSelectedElement(-6);
+  }
+  if (action === "grow-element") {
+    pushHistory();
+    resizeSelectedElement(6);
   }
   if (action === "duplicate-element") {
     pushHistory();
@@ -1292,6 +1385,15 @@ function handleKeyboardShortcut(event) {
     return;
   }
 
+  if ((key === "delete" || key === "backspace") && state.view === "editor" && state.selectedId && !isTyping) {
+    event.preventDefault();
+    pushHistory();
+    deleteSelectedElement();
+    render();
+    persist();
+    return;
+  }
+
   if (!command || isTyping) return;
 
   if (key === "k") {
@@ -1341,7 +1443,7 @@ function handleKeyboardShortcut(event) {
 
   if (key === "=" || key === "+") {
     event.preventDefault();
-    setZoom(state.zoom + 0.1);
+    setZoom(state.zoom + 0.1, stageCenterPoint());
     render();
     persist();
     return;
@@ -1349,7 +1451,7 @@ function handleKeyboardShortcut(event) {
 
   if (key === "-") {
     event.preventDefault();
-    setZoom(state.zoom - 0.1);
+    setZoom(state.zoom - 0.1, stageCenterPoint());
     render();
     persist();
     return;
@@ -1372,14 +1474,45 @@ function focusLibrarySearch() {
   });
 }
 
-function setZoom(value) {
-  state.zoom = Math.max(0.65, Math.min(1.7, Number(value.toFixed(2))));
+function clampZoom(value) {
+  return Math.max(0.65, Math.min(1.9, Number(value.toFixed(3))));
+}
+
+function setZoom(value, focalPoint = stageCenterPoint()) {
+  zoomCameraAt(value, focalPoint);
 }
 
 function resetView() {
   state.zoom = 1;
   state.panX = 0;
   state.panY = 0;
+}
+
+function stageCenterPoint() {
+  const stage = document.getElementById("stage-transform");
+  const rect = stage?.getBoundingClientRect?.();
+  if (rect?.width && rect?.height) {
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+  return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+}
+
+function zoomCameraAt(value, focalPoint = stageCenterPoint()) {
+  const stage = document.getElementById("stage-transform");
+  const oldZoom = state.zoom || 1;
+  const nextZoom = clampZoom(value);
+  if (!stage || !focalPoint) {
+    state.zoom = nextZoom;
+    return;
+  }
+  const rect = stage.getBoundingClientRect();
+  const localX = (focalPoint.x - rect.left) / oldZoom;
+  const localY = (focalPoint.y - rect.top) / oldZoom;
+  const baseLeft = rect.left - (state.panX || 0);
+  const baseTop = rect.top - (state.panY || 0);
+  state.zoom = nextZoom;
+  state.panX = focalPoint.x - baseLeft - localX * nextZoom;
+  state.panY = focalPoint.y - baseTop - localY * nextZoom;
 }
 
 function adjustInkAlignment(dx, dy) {
@@ -1492,6 +1625,84 @@ function deleteSelectedElement() {
   state.selectedId = null;
 }
 
+function resizeSelectedElement(delta) {
+  const selected = state.elements.find((element) => element.id === state.selectedId);
+  if (!selected) return;
+  selected.size = clampElementSize(selected, (selected.size || 38) + delta);
+}
+
+function clampElementSize(element, size) {
+  const min = element.type === "text" ? 12 : 20;
+  const max = element.type === "image" || element.type === "pdf" ? 120 : element.type === "tape" ? 96 : 72;
+  return Math.max(min, Math.min(max, size));
+}
+
+function elementSizeStyle(element) {
+  const size = element.size || (element.type === "text" ? 18 : 38);
+  if (element.type === "text") {
+    return `font-size:${size}px;width:${Math.max(150, size * 10)}px;min-height:${Math.max(46, size * 3.2)}px`;
+  }
+  if (element.type === "sticker") {
+    const box = Math.max(44, size * 1.72);
+    return `font-size:${size}px;width:${box}px;height:${box}px`;
+  }
+  if (element.type === "image" || element.type === "pdf") {
+    return `width:${size * 4}px`;
+  }
+  if (element.type === "tape") {
+    return `width:${size * 4}px;height:${Math.max(24, size * 0.8)}px`;
+  }
+  return "";
+}
+
+function applyElementSizeStyle(elementNode, element) {
+  const size = element.size || (element.type === "text" ? 18 : 38);
+  if (element.type === "text") {
+    elementNode.style.fontSize = `${size}px`;
+    elementNode.style.width = `${Math.max(150, size * 10)}px`;
+    elementNode.style.minHeight = `${Math.max(46, size * 3.2)}px`;
+    return;
+  }
+  if (element.type === "sticker") {
+    const box = Math.max(44, size * 1.72);
+    elementNode.style.fontSize = `${size}px`;
+    elementNode.style.width = `${box}px`;
+    elementNode.style.height = `${box}px`;
+    return;
+  }
+  if (element.type === "image" || element.type === "pdf") elementNode.style.width = `${size * 4}px`;
+  if (element.type === "tape") {
+    elementNode.style.width = `${size * 4}px`;
+    elementNode.style.height = `${Math.max(24, size * 0.8)}px`;
+  }
+}
+
+function elementVisualSize(element) {
+  const size = element.size || (element.type === "text" ? 18 : 38);
+  if (element.type === "text") {
+    return {
+      width: Math.max(150, size * 10),
+      height: Math.max(46, size * 3.2),
+    };
+  }
+  if (element.type === "sticker") {
+    const box = Math.max(44, size * 1.72);
+    return { width: box, height: box };
+  }
+  if (element.type === "image" || element.type === "pdf") {
+    return { width: size * 4, height: element.type === "pdf" ? 270 : size * 3 };
+  }
+  if (element.type === "tape") {
+    return { width: size * 4, height: Math.max(24, size * 0.8) };
+  }
+  return { width: size, height: size };
+}
+
+function touchListDistance(touches) {
+  if (!touches || touches.length < 2) return 0;
+  return Math.hypot(touches[1].clientX - touches[0].clientX, touches[1].clientY - touches[0].clientY);
+}
+
 function duplicateSelectedElement() {
   const selected = state.elements.find((element) => element.id === state.selectedId);
   if (!selected) return;
@@ -1525,7 +1736,7 @@ function addElement(type, value) {
     value,
     x: type === "text" ? 60 : 64,
     y: type === "text" ? 64 : 31,
-    size: type === "text" ? 18 : 38,
+    size: type === "text" ? 16 : type === "tape" ? 34 : type === "sticker" ? 26 : 38,
     rotation: 0,
   });
   state.selectedId = id;
@@ -2119,6 +2330,8 @@ function drawExportElements(ctx) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(decodeHtml(element.value), 0, 0);
+    } else if (element.type === "tape") {
+      drawTapeExport(ctx, element.value, element.size || 42);
     } else if (element.type === "pdf") {
       const boxWidth = (element.size || 78) * 4;
       const boxHeight = (element.size || 78) * 2.8;
@@ -2139,6 +2352,33 @@ function drawExportElements(ctx) {
   });
 }
 
+function drawTapeExport(ctx, tape, size) {
+  const width = size * 3.8;
+  const height = size * 0.74;
+  ctx.fillStyle = tape === "blue-grid" ? "#c9e3ef" : tape === "leaf" ? "#edf5d8" : tape === "dots" ? "#ffd982" : tape === "linen" ? "#e8d2bd" : "#ffd9db";
+  if (tape === "ink-dots") ctx.fillStyle = "#fff";
+  ctx.fillRect(-width / 2, -height / 2, width, height);
+  ctx.strokeStyle = "rgba(48, 45, 45, 0.18)";
+  ctx.lineWidth = 1;
+  if (tape === "dots" || tape === "ink-dots") {
+    ctx.fillStyle = tape === "ink-dots" ? "#302d2d" : "#cc9d5b";
+    for (let x = -width / 2 + 8; x < width / 2; x += 12) {
+      for (let y = -height / 2 + 8; y < height / 2; y += 12) {
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else {
+    for (let x = -width / 2; x < width / 2; x += 14) {
+      ctx.beginPath();
+      ctx.moveTo(x, -height / 2);
+      ctx.lineTo(x, height / 2);
+      ctx.stroke();
+    }
+  }
+}
+
 function roundRect(ctx, x, y, width, height, radius) {
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -2153,52 +2393,129 @@ function drawElements() {
   if (!layer) return;
   layer.innerHTML = state.elements.map((element) => {
     const transform = `translate(-50%, -50%) rotate(${element.rotation || 0}deg)`;
+    const sizeStyle = elementSizeStyle(element);
     if (element.type === "text") {
-      return `<textarea class="canvas-text ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;font-size:${element.size}px;transform:${transform}">${escapeHtml(element.value)}</textarea>`;
+      return `<textarea class="canvas-text ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" style="left:${element.x}%;top:${element.y}%;${sizeStyle};transform:${transform}">${escapeHtml(element.value)}</textarea>`;
     }
     if (element.type === "image") {
-      return `<img class="canvas-image ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;width:${element.size * 4}px;transform:${transform}" src="${element.value}" alt="Imported journal item" />`;
+      return `<img class="canvas-image ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;${sizeStyle};transform:${transform}" src="${element.value}" alt="Imported journal item" />`;
     }
     if (element.type === "pdf") {
-      return `<div class="canvas-pdf ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;width:${element.size * 4}px;transform:${transform}"><object data="${element.value}" type="application/pdf" aria-label="${escapeHtml(element.name || "Imported PDF")}"></object><span><strong>PDF</strong>${escapeHtml(element.name || "Imported PDF")}</span></div>`;
+      return `<div class="canvas-pdf ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;${sizeStyle};transform:${transform}"><object data="${element.value}" type="application/pdf" aria-label="${escapeHtml(element.name || "Imported PDF")}"></object><span><strong>PDF</strong>${escapeHtml(element.name || "Imported PDF")}</span></div>`;
     }
-    return `<button class="canvas-sticker ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;font-size:${element.size}px;transform:${transform}">${element.value}</button>`;
+    if (element.type === "tape") {
+      return `<button class="canvas-tape tape-${escapeHtml(element.value)} ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;${sizeStyle};transform:${transform}" aria-label="Washi tape"></button>`;
+    }
+    return `<button class="canvas-sticker ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;${sizeStyle};transform:${transform}">${element.value}</button>`;
   }).join("");
+  drawSelectionHandles(layer);
+
+  bindLayerPinchResize(layer);
 
   document.querySelectorAll("[data-element]").forEach((elementNode) => {
     const id = elementNode.dataset.element;
-    let drag = null;
-    elementNode.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
+    let press = null;
+    let pinchResize = null;
+    elementNode.addEventListener("touchstart", (event) => {
+      if (event.touches.length !== 2) return;
       event.preventDefault();
+      event.stopPropagation();
       pushHistory();
+      const item = state.elements.find((entry) => entry.id === id);
+      if (!item) return;
       state.selectedId = id;
       document.querySelectorAll("[data-element]").forEach((node) => node.classList.toggle("selected", node.dataset.element === id));
+      pinchResize = {
+        distance: touchListDistance(event.touches),
+        size: item.size || 38,
+      };
+      press = null;
+    }, { passive: false });
+    elementNode.addEventListener("touchmove", (event) => {
+      if (!pinchResize || event.touches.length !== 2) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const item = state.elements.find((entry) => entry.id === id);
+      if (!item || !pinchResize.distance) return;
+      const nextDistance = touchListDistance(event.touches);
+      item.size = clampElementSize(item, pinchResize.size * (nextDistance / pinchResize.distance));
+      applyElementSizeStyle(elementNode, item);
+      persist();
+    }, { passive: false });
+    elementNode.addEventListener("touchend", () => {
+      if (!pinchResize) return;
+      pinchResize = null;
+      drawElements();
+    });
+    elementNode.addEventListener("pointerdown", (event) => {
+      if (pinchResize) return;
+      if (isDrawingTool()) return;
+      event.stopPropagation();
+      state.selectedId = id;
+      document.querySelectorAll("[data-element]").forEach((node) => node.classList.toggle("selected", node.dataset.element === id));
+      if (elementNode.tagName === "TEXTAREA" && !isTextMoveZone(event, elementNode)) {
+        persist();
+        return;
+      }
+      event.preventDefault();
+      elementNode.blur?.();
       const item = state.elements.find((entry) => entry.id === id);
       const book = document.getElementById("book-spread");
       const rect = book.getBoundingClientRect();
-      const local = localPoint(event, book, rect);
-      drag = {
+      const local = localPoint(event, book, rect, false);
+      press = {
+        pointerX: event.clientX,
+        pointerY: event.clientY,
+        dragging: false,
+        historyStarted: false,
         offsetX: local.x - (item.x / 100) * book.clientWidth,
         offsetY: local.y - (item.y / 100) * book.clientHeight,
       };
       elementNode.setPointerCapture(event.pointerId);
     });
     elementNode.addEventListener("pointermove", (event) => {
-      if (!drag) return;
-      event.preventDefault();
+      if (!press) return;
       const item = state.elements.find((entry) => entry.id === id);
       const book = document.getElementById("book-spread");
       const rect = book.getBoundingClientRect();
-      const local = localPoint(event, book, rect);
-      item.x = Math.max(2, Math.min(92, ((local.x - drag.offsetX) / book.clientWidth) * 100));
-      item.y = Math.max(2, Math.min(92, ((local.y - drag.offsetY) / book.clientHeight) * 100));
+      const local = localPoint(event, book, rect, false);
+      const moved = Math.hypot(event.clientX - press.pointerX, event.clientY - press.pointerY) > 5;
+      if (!press.dragging && !moved) return;
+      if (!press.historyStarted) {
+        pushHistory();
+        press.historyStarted = true;
+      }
+      press.dragging = true;
+      event.preventDefault();
+      elementNode.blur?.();
+      item.x = Math.max(2, Math.min(92, ((local.x - press.offsetX) / book.clientWidth) * 100));
+      item.y = Math.max(2, Math.min(92, ((local.y - press.offsetY) / book.clientHeight) * 100));
       elementNode.style.left = `${item.x}%`;
       elementNode.style.top = `${item.y}%`;
+      moveSelectionHandlesTo(item);
       persist();
     });
-    elementNode.addEventListener("pointerup", () => {
-      drag = null;
+    elementNode.addEventListener("pointerup", (event) => {
+      if (!press) return;
+      const shouldRedraw = Boolean(press?.dragging);
+      press = null;
+      if (!shouldRedraw && elementNode.tagName === "TEXTAREA") {
+        drawElements();
+        focusElementSoon(id, false);
+        persist();
+        return;
+      }
+      if (!shouldRedraw) {
+        event.preventDefault();
+        drawElements();
+        persist();
+        return;
+      }
+      if (shouldRedraw) drawElements();
+    });
+    elementNode.addEventListener("pointercancel", () => {
+      press = null;
+      drawElements();
     });
     if (elementNode.tagName === "TEXTAREA") {
       elementNode.addEventListener("focus", () => {
@@ -2213,6 +2530,153 @@ function drawElements() {
       });
     }
   });
+  bindSelectionHandles();
+}
+
+function isTextMoveZone(event, elementNode) {
+  const rect = elementNode.getBoundingClientRect();
+  const edge = 18;
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  return x <= edge || x >= rect.width - edge || y <= edge || y >= rect.height - edge;
+}
+
+function focusElementSoon(id, shouldSelect = false) {
+  requestAnimationFrame(() => {
+    const element = document.querySelector(`[data-element="${CSS.escape(id)}"]`);
+    if (!element) return;
+    element.focus?.();
+    if (shouldSelect && element.tagName === "TEXTAREA") element.select?.();
+  });
+}
+
+function drawSelectionHandles(layer) {
+  if (isDrawingTool()) return;
+  const selected = state.elements.find((element) => element.id === state.selectedId);
+  const book = document.getElementById("book-spread");
+  if (!selected || !book) return;
+  const visual = elementVisualSize(selected);
+  const halfX = ((visual.width / 2) / book.clientWidth) * 100;
+  const halfY = ((visual.height / 2) / book.clientHeight) * 100;
+  const handles = [
+    { id: "nw", x: selected.x - halfX, y: selected.y - halfY },
+    { id: "ne", x: selected.x + halfX, y: selected.y - halfY },
+    { id: "sw", x: selected.x - halfX, y: selected.y + halfY },
+    { id: "se", x: selected.x + halfX, y: selected.y + halfY },
+  ];
+  layer.insertAdjacentHTML("beforeend", handles.map((handle) =>
+    `<button class="resize-handle handle-${handle.id}" data-resize-handle="${handle.id}" style="left:${handle.x}%;top:${handle.y}%" aria-label="Resize selected object"></button>`
+  ).join(""));
+}
+
+function moveSelectionHandlesTo(selected) {
+  const book = document.getElementById("book-spread");
+  if (!selected || !book) return;
+  const visual = elementVisualSize(selected);
+  const halfX = ((visual.width / 2) / book.clientWidth) * 100;
+  const halfY = ((visual.height / 2) / book.clientHeight) * 100;
+  const positions = {
+    nw: { x: selected.x - halfX, y: selected.y - halfY },
+    ne: { x: selected.x + halfX, y: selected.y - halfY },
+    sw: { x: selected.x - halfX, y: selected.y + halfY },
+    se: { x: selected.x + halfX, y: selected.y + halfY },
+  };
+  Object.entries(positions).forEach(([id, position]) => {
+    const handle = document.querySelector(`[data-resize-handle="${id}"]`);
+    if (!handle) return;
+    handle.style.left = `${position.x}%`;
+    handle.style.top = `${position.y}%`;
+  });
+}
+
+function bindSelectionHandles() {
+  document.querySelectorAll("[data-resize-handle]").forEach((handle) => {
+    let resize = null;
+    handle.addEventListener("pointerdown", (event) => {
+      const selected = state.elements.find((element) => element.id === state.selectedId);
+      if (!selected) return;
+      event.preventDefault();
+      event.stopPropagation();
+      pushHistory();
+      resize = {
+        startX: event.clientX,
+        startY: event.clientY,
+        size: selected.size || 38,
+      };
+      handle.setPointerCapture(event.pointerId);
+    });
+    handle.addEventListener("pointermove", (event) => {
+      if (!resize) return;
+      const selected = state.elements.find((element) => element.id === state.selectedId);
+      const elementNode = selected ? document.querySelector(`[data-element="${CSS.escape(selected.id)}"]`) : null;
+      if (!selected || !elementNode) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const direction = handle.dataset.resizeHandle || "se";
+      const signX = direction.includes("w") ? -1 : 1;
+      const signY = direction.includes("n") ? -1 : 1;
+      const delta = ((event.clientX - resize.startX) * signX + (event.clientY - resize.startY) * signY) / 2;
+      selected.size = clampElementSize(selected, resize.size + delta / Math.max(0.7, state.zoom || 1));
+      applyElementSizeStyle(elementNode, selected);
+      moveSelectionHandlesTo(selected);
+      persist();
+    });
+    handle.addEventListener("pointerup", () => {
+      resize = null;
+      drawElements();
+    });
+    handle.addEventListener("pointercancel", () => {
+      resize = null;
+      drawElements();
+    });
+  });
+}
+
+function bindLayerPinchResize(layer) {
+  if (layer.dataset.pinchResizeBound) return;
+  layer.dataset.pinchResizeBound = "true";
+  let resize = null;
+  layer.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 2 || !state.selectedId || isDrawingTool()) return;
+    const elementNode = document.querySelector(`[data-element="${CSS.escape(state.selectedId)}"]`);
+    const selected = state.elements.find((element) => element.id === state.selectedId);
+    if (!elementNode || !selected || !touchesHitElement(event.touches, elementNode)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pushHistory();
+    resize = {
+      distance: touchListDistance(event.touches),
+      size: selected.size || 38,
+    };
+  }, { passive: false, capture: true });
+  layer.addEventListener("touchmove", (event) => {
+    if (!resize || event.touches.length !== 2) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const selected = state.elements.find((element) => element.id === state.selectedId);
+    const elementNode = selected ? document.querySelector(`[data-element="${CSS.escape(selected.id)}"]`) : null;
+    if (!selected || !elementNode || !resize.distance) return;
+    const nextDistance = touchListDistance(event.touches);
+    selected.size = clampElementSize(selected, resize.size * (nextDistance / resize.distance));
+    applyElementSizeStyle(elementNode, selected);
+    persist();
+  }, { passive: false, capture: true });
+  layer.addEventListener("touchend", () => {
+    if (!resize) return;
+    resize = null;
+    drawElements();
+  }, { capture: true });
+}
+
+function touchesHitElement(touches, elementNode) {
+  const rect = elementNode.getBoundingClientRect();
+  const pad = 36;
+  return [...touches].every((touch) =>
+    touch.clientX >= rect.left - pad &&
+    touch.clientX <= rect.right + pad &&
+    touch.clientY >= rect.top - pad &&
+    touch.clientY <= rect.bottom + pad
+  );
 }
 
 function setupCanvas() {
@@ -2232,10 +2696,19 @@ function setupCanvas() {
   canvas.addEventListener("pointerleave", endDraw);
   canvas.addEventListener("lostpointercapture", endDraw);
   book?.addEventListener("pointerdown", handlePinchStart);
+  book?.addEventListener("pointerdown", handleBlankSelectionDown);
   book?.addEventListener("pointermove", handlePinchMove);
   book?.addEventListener("pointerup", handlePinchEnd);
   book?.addEventListener("pointercancel", handlePinchEnd);
   paintPaths();
+}
+
+function handleBlankSelectionDown(event) {
+  if (isDrawingTool() || !state.selectedId) return;
+  if (event.target.closest?.("[data-element], input, textarea, [contenteditable='true']")) return;
+  state.selectedId = null;
+  drawElements();
+  persist();
 }
 
 function handlePinchStart(event) {
@@ -2274,7 +2747,20 @@ function maybeStartPinch() {
   const distance = touchDistance(first, second);
   if (!pinchState) {
     cancelActiveStroke(true);
-    pinchState = { distance, zoom: state.zoom };
+    const midpoint = touchMidpoint(first, second);
+    const stage = document.getElementById("stage-transform");
+    const rect = stage?.getBoundingClientRect?.();
+    const zoom = state.zoom || 1;
+    const baseLeft = rect ? rect.left - (state.panX || 0) : 0;
+    const baseTop = rect ? rect.top - (state.panY || 0) : 0;
+    pinchState = {
+      distance,
+      zoom,
+      baseLeft,
+      baseTop,
+      localX: rect ? (midpoint.x - rect.left) / zoom : 0,
+      localY: rect ? (midpoint.y - rect.top) / zoom : 0,
+    };
   }
   return true;
 }
@@ -2286,7 +2772,11 @@ function updatePinchZoom(event) {
   const [first, second] = [...activeTouches.values()];
   const nextDistance = touchDistance(first, second);
   if (!pinchState.distance || !nextDistance) return true;
-  setZoom(pinchState.zoom * (nextDistance / pinchState.distance));
+  const midpoint = touchMidpoint(first, second);
+  const nextZoom = clampZoom(pinchState.zoom * (nextDistance / pinchState.distance));
+  state.zoom = nextZoom;
+  state.panX = midpoint.x - pinchState.baseLeft - pinchState.localX * nextZoom;
+  state.panY = midpoint.y - pinchState.baseTop - pinchState.localY * nextZoom;
   applyLiveZoom();
   return true;
 }
@@ -2295,9 +2785,17 @@ function touchDistance(first, second) {
   return Math.hypot(second.x - first.x, second.y - first.y);
 }
 
+function touchMidpoint(first, second) {
+  return { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+}
+
 function applyLiveZoom() {
   const stage = document.getElementById("stage-transform");
-  if (stage) stage.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+  if (stage) {
+    stage.style.setProperty("--camera-scale", state.zoom);
+    stage.style.setProperty("--inverse-camera-scale", 1 / (state.zoom || 1));
+    stage.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+  }
   const readout = document.querySelector('[data-testid="zoom-readout"]');
   if (readout) readout.textContent = `${Math.round(state.zoom * 100)}%`;
 }
@@ -2317,24 +2815,22 @@ function resizeCanvas() {
   paintPaths();
 }
 
-function localPoint(event, element, rect = element.getBoundingClientRect()) {
+function localPoint(event, element, rect = element.getBoundingClientRect(), includeInkOffset = true) {
   const width = element.clientWidth || rect.width;
   const height = element.clientHeight || rect.height;
   const xRatio = rect.width ? width / rect.width : 1;
   const yRatio = rect.height ? height / rect.height : 1;
-  const pageX = Number.isFinite(event.pageX) ? event.pageX : event.clientX + window.scrollX;
-  const pageY = Number.isFinite(event.pageY) ? event.pageY : event.clientY + window.scrollY;
-  const elementPageLeft = rect.left + window.scrollX;
-  const elementPageTop = rect.top + window.scrollY;
+  const clientX = Number.isFinite(event.clientX) ? event.clientX : (event.pageX || 0) - window.scrollX;
+  const clientY = Number.isFinite(event.clientY) ? event.clientY : (event.pageY || 0) - window.scrollY;
   return {
-    x: (pageX - elementPageLeft) * xRatio + (state.drawOffsetX || 0),
-    y: (pageY - elementPageTop) * yRatio + (state.drawOffsetY || 0),
+    x: (clientX - rect.left) * xRatio + (includeInkOffset ? state.drawOffsetX || 0 : 0),
+    y: (clientY - rect.top) * yRatio + (includeInkOffset ? state.drawOffsetY || 0 : 0),
   };
 }
 
 function canvasPoint(event) {
   const book = document.getElementById("book-spread");
-  const target = book || canvas;
+  const target = canvas || book;
   const computed = localPoint(event, target);
   recordPenDiagnostics(event, computed, book || target);
   return computed;
@@ -2523,6 +3019,22 @@ function pressureWidth(path, point) {
   return Math.max(1, baseWidth * (0.72 + pressure * 0.5));
 }
 
+function shouldDrawJoinedStroke(path) {
+  return ["pencil", "marker", "highlighter"].includes(path.preset);
+}
+
+function averageStrokeWidth(path, points) {
+  const total = points.reduce((sum, point) => sum + pressureWidth(path, point), 0);
+  return total / Math.max(1, points.length);
+}
+
+function drawJoinedStroke(ctx, points) {
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let index = 1; index < points.length; index += 1) {
+    ctx.lineTo(points[index].x, points[index].y);
+  }
+}
+
 function drawStrokePath(ctx, path) {
   const points = path.points || [];
   if (!points.length) return;
@@ -2535,17 +3047,21 @@ function drawStrokePath(ctx, path) {
     return;
   }
 
+  if (shouldDrawJoinedStroke(path)) {
+    ctx.beginPath();
+    ctx.lineWidth = averageStrokeWidth(path, points);
+    drawJoinedStroke(ctx, points);
+    ctx.stroke();
+    return;
+  }
+
   for (let index = 1; index < points.length; index += 1) {
     const previous = points[index - 1];
     const current = points[index];
-    const midpoint = {
-      x: (previous.x + current.x) / 2,
-      y: (previous.y + current.y) / 2,
-    };
     ctx.beginPath();
     ctx.lineWidth = (pressureWidth(path, previous) + pressureWidth(path, current)) / 2;
     ctx.moveTo(previous.x, previous.y);
-    ctx.quadraticCurveTo(previous.x, previous.y, midpoint.x, midpoint.y);
+    ctx.lineTo(current.x, current.y);
     ctx.stroke();
   }
 }

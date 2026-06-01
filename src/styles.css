@@ -27,10 +27,20 @@ body {
   overflow: hidden;
   min-height: 100dvh;
   overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   -webkit-font-smoothing: antialiased;
   background:
     linear-gradient(120deg, rgba(255, 209, 211, 0.42), rgba(191, 232, 204, 0.22) 48%, rgba(185, 220, 237, 0.34)),
     var(--shell);
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 body.is-writing,
@@ -768,6 +778,19 @@ button {
   color: #21875d;
 }
 
+.build-badge {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffaf6;
+  color: #9d4755;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .app-toast {
   position: fixed;
   right: 18px;
@@ -833,10 +856,23 @@ button {
   border-radius: 8px;
   display: grid;
   place-items: center;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
 .rail-button.active {
   background: #ffd6d7;
+}
+
+.rail-button:hover {
+  background: #fff2ee;
+  color: var(--pink-deep);
+  transform: translateY(-1px);
+}
+
+.rail-button:focus-visible {
+  outline: 2px solid var(--pink-deep);
+  outline-offset: 2px;
 }
 
 .library,
@@ -1028,8 +1064,8 @@ button {
 }
 
 .stage-transform {
-  transform-origin: center center;
-  transition: transform 160ms ease;
+  transform-origin: 0 0;
+  will-change: transform;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -1370,10 +1406,16 @@ button {
   height: 42px;
 }
 
+.object-layer.drawing-inactive {
+  pointer-events: none;
+}
+
 .canvas-sticker,
 .canvas-text,
 .canvas-image,
-.canvas-pdf {
+.canvas-pdf,
+.canvas-tape,
+.resize-handle {
   position: absolute;
   z-index: 5;
   transform: translate(-50%, -50%);
@@ -1399,11 +1441,52 @@ button {
   display: grid;
   place-items: center;
   border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.58);
+  background: transparent;
   border-radius: 8px;
   cursor: grab;
   line-height: 1;
   touch-action: none;
+}
+
+.canvas-tape {
+  border: 1px solid rgba(70, 52, 42, 0.08);
+  border-radius: 5px;
+  cursor: grab;
+  touch-action: none;
+  opacity: 1;
+  background-color: #ffd9db;
+}
+
+.canvas-tape.tape-gingham,
+.gingham {
+  background: repeating-linear-gradient(0deg, #ffb7bf 0 8px, #ffe1e3 8px 16px), repeating-linear-gradient(90deg, #ffb7bf 0 8px, #ffd9db 8px 16px);
+}
+
+.canvas-tape.tape-blue-grid,
+.blue-grid {
+  background: repeating-linear-gradient(0deg, #9fcbe1 0 2px, #dff0f7 2px 18px), repeating-linear-gradient(90deg, #9fcbe1 0 2px, #c9e3ef 2px 18px);
+}
+
+.canvas-tape.tape-leaf,
+.leaf {
+  background: repeating-linear-gradient(135deg, #b6d48e 0 8px, #edf5d8 8px 18px);
+}
+
+.canvas-tape.tape-dots,
+.dots {
+  background: radial-gradient(#cc9d5b 1.5px, transparent 1.5px), #ffd982;
+  background-size: 11px 11px;
+}
+
+.canvas-tape.tape-linen,
+.linen {
+  background: #e8d2bd;
+}
+
+.canvas-tape.tape-ink-dots,
+.ink-dots {
+  background: radial-gradient(#302d2d 1.4px, transparent 1.4px), #fff;
+  background-size: 10px 10px;
 }
 
 .canvas-text {
@@ -1412,7 +1495,7 @@ button {
   padding: 8px;
   border: 1px solid transparent;
   background: transparent;
-  resize: both;
+  resize: none;
   font-family: "Comic Sans MS", "Segoe Print", cursive;
   line-height: 1.45;
   color: #242222;
@@ -1472,9 +1555,42 @@ button {
 .canvas-sticker.selected,
 .canvas-text.selected,
 .canvas-image.selected,
-.canvas-pdf.selected {
+.canvas-pdf.selected,
+.canvas-tape.selected {
   border-color: var(--pink-deep);
   box-shadow: 0 0 0 3px rgba(255, 183, 185, 0.38);
+  opacity: 1;
+  background: transparent !important;
+}
+
+.resize-handle {
+  z-index: 9;
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  max-width: 10px;
+  max-height: 10px;
+  padding: 0;
+  border: 1.5px solid var(--pink-deep);
+  border-radius: 50%;
+  background: #fffaf6;
+  box-sizing: border-box;
+  box-shadow: 0 2px 7px rgba(70, 52, 42, 0.16);
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: none;
+  transform: translate(-50%, -50%) scale(var(--inverse-camera-scale, 1));
+}
+
+.handle-nw,
+.handle-se {
+  cursor: nwse-resize;
+}
+
+.handle-ne,
+.handle-sw {
+  cursor: nesw-resize;
 }
 
 .page-footer {
@@ -1805,13 +1921,6 @@ button {
   border-radius: 5px;
   cursor: pointer;
 }
-
-.gingham { background: repeating-linear-gradient(0deg, rgba(255, 137, 148, 0.35) 0 8px, transparent 8px 16px), repeating-linear-gradient(90deg, rgba(255, 137, 148, 0.35) 0 8px, #ffd9db 8px 16px); }
-.blue-grid { background: repeating-linear-gradient(0deg, rgba(74, 147, 186, 0.18) 0 9px, transparent 9px 18px), repeating-linear-gradient(90deg, rgba(74, 147, 186, 0.18) 0 9px, #c9e3ef 9px 18px); }
-.leaf { background: repeating-linear-gradient(135deg, #b6d48e 0 8px, #edf5d8 8px 18px); }
-.dots { background: radial-gradient(#cc9d5b 1.5px, transparent 1.5px), #ffd982; background-size: 11px 11px; }
-.linen { background: #e8d2bd; }
-.ink-dots { background: radial-gradient(#302d2d 1.4px, transparent 1.4px), #fff; background-size: 10px 10px; }
 
 .color-grid {
   display: grid;

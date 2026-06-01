@@ -13,13 +13,17 @@ Make sure the iPad and this computer are on the same Wi-Fi.
 Open Safari on the iPad and go to:
 
 ```text
-http://192.168.1.17:4173/index.html
+http://YOUR-WIFI-IPV4-ADDRESS:4173/index.html
 ```
 
-If that address does not open, run `ipconfig` on this computer and use the Wi-Fi `IPv4 Address` instead:
+Do not reuse an old saved IP address. Your computer's Wi-Fi IP can change after a restart or reconnect.
+
+To find the current address, run `ipconfig` on this computer and use the Wi-Fi `IPv4 Address`.
+
+Example:
 
 ```text
-http://YOUR-IP-ADDRESS:4173/index.html
+http://192.168.1.3:4173/index.html
 ```
 
 ## What To Test First

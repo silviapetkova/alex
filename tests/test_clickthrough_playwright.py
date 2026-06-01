@@ -97,7 +97,7 @@ def test_alex_notebook_clickthrough(app_url):
         page.locator("[data-open-journal]").first.click()
         page.wait_for_selector(".app-shell")
 
-        page.locator('[data-inspector-tab="Pages"]').click()
+        page.locator('.asset-tabs [data-inspector-tab="Pages"]').click()
         assert page.locator(".page-actions").count() == 1
         assert page.locator(".page-row .page-preview").count() >= 1
         initial_pages = page.locator(".page-row").count()
@@ -122,18 +122,27 @@ def test_alex_notebook_clickthrough(app_url):
         assert page.locator(".journal-switch").inner_text() != current_journal_title
         assert page.locator(".journal-menu").count() == 0
 
-        page.locator('[data-inspector-tab="Pens"]').click()
+        page.locator('.asset-tabs [data-inspector-tab="Pens"]').click()
         page.locator('[data-preset="pencil"]').click()
         assert "selected" in page.locator('[data-preset="pencil"]').get_attribute("class")
 
-        page.locator('[data-inspector-tab="Paper"]').click()
+        page.locator('.asset-tabs [data-inspector-tab="Paper"]').click()
         page.locator('[data-paper="dot"]').click()
         assert "paper-dot" in page.locator("#book-spread").get_attribute("class")
 
         page.locator('[data-cover="mint"]').click()
         assert "selected" in page.locator('[data-cover="mint"]').get_attribute("class")
+        assert "mint" in page.locator(".journal-row.selected .cover").get_attribute("class")
+        assert page.evaluate(
+            """(key) => {
+                const stored = JSON.parse(window.localStorage.getItem(key));
+                const journal = stored.journals.find((entry) => entry.id === stored.activeJournal);
+                return journal.cover;
+            }""",
+            STORAGE_KEY,
+        ) == "mint"
 
-        page.locator('[data-inspector-tab="Marks"]').click()
+        page.locator('.asset-tabs [data-inspector-tab="Marks"]').click()
         assert page.locator("#sticker-search").count() == 1
         assert page.locator(".page-actions").count() == 0
 
@@ -147,7 +156,7 @@ def test_alex_notebook_clickthrough(app_url):
         assert "100%" in page.locator('[data-testid="zoom-readout"]').inner_text()
 
         page.locator('[data-sticker]').first.click()
-        page.locator('[data-inspector-tab="Pens"]').click()
+        page.locator('.asset-tabs [data-inspector-tab="Pens"]').click()
         assert page.locator("#element-size").count() == 1
         page.locator("#element-size").evaluate("(input) => { input.value = 55; input.dispatchEvent(new Event('input', { bubbles: true })); }")
         selected_font_size = page.locator("[data-element].selected").evaluate(

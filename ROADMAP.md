@@ -101,10 +101,25 @@ Phase 1 is the active focus: real notebooks with multiple saved pages.
 - Made the ink canvas an explicit full-spread overlay and mapped pen input against the whole book spread for iPad Safari.
 - Added Pen Diagnostics readout so real iPad Safari Pencil coordinates can be captured and fixed precisely.
 - Fixed the iPad ink layer size mismatch by locking canvas CSS and drawing dimensions to the visible book spread.
+- Tightened iPad Pencil mapping by keeping pointer and notebook rectangle math in the same screen-coordinate system.
+- Mapped Pencil strokes to the ink canvas instead of the outer book border to remove the remaining small iPad offset.
 - Improved Pencil feel with pressure-aware stroke rendering and small jitter filtering.
 - Added writing lock behavior to prevent page scroll, text selection, and touch callouts during active Pencil strokes.
 - Fixed iPad interaction bugs: disabled inactive footer view buttons, added two-finger pinch zoom, and made Marks enter Select mode after placement.
+- Refactored notebook zoom into a camera-style transform anchored around the pinch midpoint.
+- Added two-finger camera panning during pinch zoom so zoomed notebook movement is visibly different and controllable.
+- Kept selected-object controls screen-sized while page content scales with the notebook camera.
+- Disabled stale service-worker caching during active iPad testing and added a visible build badge.
+- Removed inactive footer view icons so the writing toolbar only shows useful controls.
+- Added a Pencil-only footer guard so accidental Apple Pencil taps do not trigger footer controls while handwriting.
+- Blocked accidental iPad text-selection callouts on notebook controls while preserving editable text fields.
 - Fixed the top Marks tool so it opens the Marks panel and uses the same placement flow as the sidebar.
+- Added an on-page mini-toolbar for selected marks, text, images, and tape so resize, duplicate, and delete are easy on iPad.
+- Added two-finger pinch resizing for selected page objects on iPad.
+- Hid object controls while writing so selected marks/text do not intercept Pencil strokes.
+- Added tap-away dismissal and a compact close control for selected-object mini toolbars.
+- Fixed Washi tape placement so each selected tape keeps its visual pattern on the page.
 - Restored the iPad editor inspector to the right side and made the top Text tool focus a new note immediately.
 - Restored the tablet breakpoint inspector layout so the right sidebar stays beside the notebook.
 - Added safe notebook deletion with confirmation and protection for the final remaining notebook.
+- Wired the left rail icons to switch Pages, Pens, Paper, Marks, and Export panels.

@@ -49,12 +49,27 @@ Then visit `http://127.0.0.1:4173`.
 - Full-spread ink overlay and book-relative pointer mapping for more accurate iPad Safari writing
 - Pen Diagnostics readout for real iPad Safari coordinate debugging
 - Canvas sizing locked to the visible book spread for iPad Pencil accuracy
+- Pen mapping uses matching screen coordinates for the Pencil and notebook rectangle
+- Pen input maps directly to the ink canvas to avoid book-border offset on iPad
 - Pressure-aware Pencil strokes with small jitter filtering for smoother handwriting
 - Writing lock that prevents page scroll, text selection, and touch callouts during active Pencil strokes
 - Two-finger pinch zoom on the notebook surface
+- Notebook camera zoom anchors around the pinch midpoint so the page stays under your fingers
+- Two-finger zoom can also pan the notebook camera while zoomed
+- Object controls stay screen-sized while selected page objects scale with the notebook
+- Local iPad testing disables stale service-worker caches and shows the active build badge
 - Inactive footer view buttons disabled so they cannot steal Pencil touches
+- Removed inactive footer view icons so the writing controls stay simple and useful
+- Footer controls ignore Apple Pencil presses to prevent accidental activation during handwriting
+- iPad text-selection callouts are blocked around the notebook controls while inputs remain editable
 - Marks switch into Select mode after placement so they can be moved and resized
 - Top Marks tool opens the Marks panel for the same placement flow as the sidebar
+- Selected marks, text, images, and tape show an on-page mini-toolbar for resize, copy, and delete
+- Selected page objects can be resized with a two-finger pinch gesture on iPad
+- Object controls stay hidden while writing so Pencil strokes are not intercepted
+- Object controls can be dismissed with a compact close button or by tapping outside the object
+- Washi tape places the selected tape pattern instead of a plain line
+- Left rail icons switch the matching right-side tool panel
 - iPad editor keeps the inspector panel on the right side instead of pushing it below the notebook
 - Tablet editor breakpoint also keeps the inspector on the right instead of below the canvas
 - Top Text tool creates and focuses a new editable note
