@@ -32,7 +32,7 @@ Alex is a soft, cozy personal notebook and creative planner app. The long-term t
 ## Phase 4: Templates & Planning
 
 - Build a template library: blank, lined, dot grid, daily, weekly, monthly.
-- Add habit trackers, mood trackers, reading logs, and budget pages.
+- Add habit trackers, mood trackers, reading logs, and budget pages. **Done** with interactive habit tracker (tappable checks, editable names, row add/remove, week/month layouts).
 - Add custom template creation.
 - Add page backgrounds and paper textures.
 - Add reusable page layouts.
@@ -67,7 +67,7 @@ Alex is a soft, cozy personal notebook and creative planner app. The long-term t
 
 ## Current Focus
 
-Phase 1 is the active focus: real notebooks with multiple saved pages.
+Current narrow focus: turn static planner templates into saved interactive pages one small feature at a time.
 
 ## Progress Log
 
@@ -123,3 +123,5 @@ Phase 1 is the active focus: real notebooks with multiple saved pages.
 - Restored the tablet breakpoint inspector layout so the right sidebar stays beside the notebook.
 - Added safe notebook deletion with confirmation and protection for the final remaining notebook.
 - Wired the left rail icons to switch Pages, Pens, Paper, Marks, and Export panels.
+- Made Habit Tracker check circles tappable and saved per page while keeping the default habit names static.
+- Made Habit Tracker names editable, added per-page habit row add/remove controls, and added a saved Week/Month layout choice.
