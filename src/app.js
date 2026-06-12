@@ -1092,6 +1092,30 @@ function notesPage() {
 function bind() {
   window.onkeydown = handleKeyboardShortcut;
 
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (target.matches("[data-habit-row][data-habit-day]")) {
+      toggleHabitCheck(target.dataset.habitRow, target.dataset.habitDay);
+    } else if (target.matches("[data-habit-name]")) {
+      renameHabitRow(target.dataset.habitName);
+    } else if (target.matches("[data-habit-remove]")) {
+      removeHabitRow(target.dataset.habitRemove);
+    } else if (target.matches("[data-habit-layout]")) {
+      setHabitLayout(target.dataset.habitLayout);
+    } else if (target.matches("[data-mood-day]")) {
+      toggleMoodDay(target.dataset.moodDay, target.dataset.moodValue);
+    } else if (target.matches("[data-rating]")) {
+      setReadingRating(target.dataset.rating);
+    }
+  });
+
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (target.matches("[data-reading-field]")) {
+      updateReadingEntry(target.dataset.readingField, target.value);
+    }
+  });
+
   document.querySelectorAll("[data-tool]").forEach((button) => {
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
@@ -1175,34 +1199,6 @@ function bind() {
       render();
       persist();
     });
-  });
-
-  document.querySelectorAll("[data-habit-row][data-habit-day]").forEach((button) => {
-    button.addEventListener("click", () => toggleHabitCheck(button.dataset.habitRow, button.dataset.habitDay));
-  });
-
-  document.querySelectorAll("[data-habit-name]").forEach((button) => {
-    button.addEventListener("click", () => renameHabitRow(button.dataset.habitName));
-  });
-
-  document.querySelectorAll("[data-habit-remove]").forEach((button) => {
-    button.addEventListener("click", () => removeHabitRow(button.dataset.habitRemove));
-  });
-
-  document.querySelectorAll("[data-habit-layout]").forEach((button) => {
-    button.addEventListener("click", () => setHabitLayout(button.dataset.habitLayout));
-  });
-
-  document.querySelectorAll("[data-mood-day]").forEach((button) => {
-    button.addEventListener("click", () => toggleMoodDay(button.dataset.moodDay, button.dataset.moodValue));
-  });
-
-  document.querySelectorAll("[data-reading-field]").forEach((input) => {
-    input.addEventListener("input", () => updateReadingEntry(input.dataset.readingField, input.value));
-  });
-
-  document.querySelectorAll("[data-rating]").forEach((button) => {
-    button.addEventListener("click", () => setReadingRating(button.dataset.rating));
   });
 
   document.querySelectorAll("[data-color]").forEach((button) => {
