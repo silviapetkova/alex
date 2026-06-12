@@ -23,6 +23,9 @@ const paperStyles = [
   { id: "dot", label: "Dot Grid" },
   { id: "grid", label: "Grid" },
   { id: "blank", label: "Blank" },
+  { id: "linen", label: "Linen" },
+  { id: "wood", label: "Wood" },
+  { id: "concrete", label: "Concrete" },
 ];
 const coverStyles = ["pink", "mint", "butter", "sky", "lavender", "rose"];
 const themeStyles = [

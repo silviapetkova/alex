@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m 'feat: add page background textures \\(linen, wood, concrete\\) *)"
+    ]
+  }
+}

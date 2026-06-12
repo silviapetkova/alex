@@ -1129,6 +1129,33 @@ button {
   background: none;
 }
 
+.book-spread.paper-linen::before {
+  background:
+    repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(158, 150, 142, 0.04) 2px 4px),
+    repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(158, 150, 142, 0.04) 2px 4px),
+    #fffdf7;
+  background-size: 100% 100%;
+}
+
+.book-spread.paper-wood::before {
+  background:
+    repeating-linear-gradient(90deg, rgba(139, 90, 43, 0.08) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(90deg, rgba(139, 90, 43, 0.05) 0 1px, transparent 1px 2px),
+    linear-gradient(90deg, #e6d4c1 0%, #dcc4b0 50%, #e6d4c1 100%);
+  background-size: 100% 60px, 100% 20px, 100% 100%;
+}
+
+.book-spread.paper-concrete::before {
+  background:
+    radial-gradient(circle at 20% 80%, rgba(100, 100, 100, 0.1) 20%, transparent 50%),
+    radial-gradient(circle at 60% 20%, rgba(80, 80, 80, 0.08) 25%, transparent 55%),
+    radial-gradient(circle at 80% 60%, rgba(110, 110, 110, 0.12) 15%, transparent 45%),
+    repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(0, 0, 0, 0.02) 1px 2px),
+    repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 0, 0, 0.02) 1px 2px),
+    #e8e8e8;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+}
+
 .book-spread::after {
   content: "";
   position: absolute;
@@ -2137,6 +2164,29 @@ button {
     linear-gradient(#d6e8f3 1px, transparent 1px),
     linear-gradient(90deg, #d6e8f3 1px, transparent 1px);
   background-size: 8px 8px;
+}
+
+.paper-sample.linen {
+  background:
+    repeating-linear-gradient(45deg, transparent, transparent 1px, rgba(100, 100, 100, 0.08) 1px 2px),
+    repeating-linear-gradient(-45deg, transparent, transparent 1px, rgba(100, 100, 100, 0.08) 1px 2px),
+    #fffdf7;
+  background-size: 100% 100%;
+}
+
+.paper-sample.wood {
+  background:
+    repeating-linear-gradient(90deg, rgba(100, 70, 30, 0.1) 0 1px, transparent 1px 2px),
+    linear-gradient(90deg, #e6d4c1 0%, #dcc4b0 50%, #e6d4c1 100%);
+  background-size: 100% 100%, 100% 100%;
+}
+
+.paper-sample.concrete {
+  background:
+    radial-gradient(circle at 20% 80%, rgba(100, 100, 100, 0.12) 20%, transparent 50%),
+    radial-gradient(circle at 60% 20%, rgba(80, 80, 80, 0.1) 25%, transparent 55%),
+    #e8e8e8;
+  background-size: 100% 100%, 100% 100%, 100% 100%;
 }
 
 .sticker-grid {
