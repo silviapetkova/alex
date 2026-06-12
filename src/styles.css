@@ -1236,6 +1236,63 @@ button {
   background: #b9dced;
 }
 
+.habit-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -10px 0 8px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.habit-controls button,
+.habit-name,
+.habit-remove {
+  border: 1px solid rgba(125, 121, 117, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.82);
+  color: #403a37;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+
+.habit-controls > button {
+  min-height: 28px;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.habit-layout-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(125, 121, 117, 0.22);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.habit-layout-toggle button {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.habit-layout-toggle button.active {
+  background: var(--pink);
+  color: #6d3040;
+}
+
+.habit-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 0 4px;
+  scrollbar-width: thin;
+}
+
 .habit-grid {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) repeat(7, 22px);
@@ -1246,26 +1303,84 @@ button {
   margin-bottom: 18px;
 }
 
+.habit-grid.habit-month {
+  min-width: 760px;
+  grid-template-columns: minmax(112px, 1fr) repeat(31, 16px);
+  gap: 8px 4px;
+}
+
 .habit-grid b {
   font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 12px;
+  text-align: center;
 }
 
-.habit-grid i {
+.habit-row-label {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+}
+
+.habit-name {
+  max-width: 100%;
+  min-width: 0;
+  padding: 1px 5px;
+  border-color: transparent;
+  background: transparent;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit-remove {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  color: #9d4755;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.habit-check {
   width: 16px;
   height: 16px;
   border: 1.8px solid #7d7975;
   border-radius: 999px;
   background: transparent;
+  padding: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
 }
 
-.habit-grid i.filled {
+.habit-grid.habit-month .habit-check {
+  width: 13px;
+  height: 13px;
+}
+
+.habit-check.filled {
   background: var(--sky);
   border-color: #689bb5;
 }
 
-.habit-grid span:nth-of-type(2n) ~ i.filled {
+.habit-grid span:nth-of-type(2n) ~ .habit-check.filled {
   background: var(--mint);
+}
+
+.habit-check:focus-visible,
+.habit-name:focus-visible,
+.habit-remove:focus-visible,
+.habit-controls button:focus-visible {
+  outline: 2px solid var(--pink-deep);
+  outline-offset: 2px;
 }
 
 .moods {
@@ -2632,12 +2747,28 @@ button {
     font-size: 12px;
   }
 
+  .habit-controls {
+    gap: 5px;
+  }
+
+  .habit-controls > button,
+  .habit-layout-toggle button {
+    min-height: 26px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
   .habit-grid {
     grid-template-columns: minmax(78px, 1fr) repeat(7, 15px);
     gap: 7px 4px;
   }
 
-  .habit-grid i {
+  .habit-grid.habit-month {
+    min-width: 640px;
+    grid-template-columns: minmax(86px, 1fr) repeat(31, 13px);
+  }
+
+  .habit-check {
     width: 12px;
     height: 12px;
   }

@@ -10,6 +10,11 @@ const templates = [
   { title: "Blank Pages", count: 13, template: "blank", icon: "&#9998;" },
 ];
 
+const defaultHabitRows = ["Drink water", "Move my body", "Read", "No sugar", "Meditate"];
+const habitLayouts = {
+  week: ["M", "T", "W", "T", "F", "S", "S"],
+  month: Array.from({ length: 31 }, (_, index) => String(index + 1)),
+};
 const stickers = ["&#9825;", "&#10047;", "&#10048;", "&#9749;", "&#9729;", "&#9733;", "&#10038;", "&#128214;", "&#127872;", "&#127793;", "&#9993;", "&#128247;"];
 const tapes = ["gingham", "blue-grid", "leaf", "dots", "linen", "ink-dots"];
 const colors = ["#202225", "#4d5256", "#e96d7b", "#c98255", "#d8aa2f", "#3c9b70", "#4f90b5", "#8a64b0", "#ffb7b9", "#f8d66d", "#9edbb8", "#a9d1e8"];
@@ -57,7 +62,7 @@ const defaultSettings = {
   startupView: "library",
 };
 
-function makePage(title = "Notebook Page", template = "notebook", paper = "lined", elements = [], penPaths = []) {
+function makePage(title = "Notebook Page", template = "notebook", paper = "lined", elements = [], penPaths = [], habitChecks = {}, habitRows = defaultHabitRows, habitLayout = "week") {
   return {
     id: `page-${Date.now()}-${Math.round(Math.random() * 100000)}`,
     title,
@@ -65,6 +70,9 @@ function makePage(title = "Notebook Page", template = "notebook", paper = "lined
     paper,
     elements: structuredClone(elements),
     penPaths: structuredClone(penPaths),
+    habitChecks: normalizeHabitChecks(habitChecks),
+    habitRows: normalizeHabitRows(habitRows),
+    habitLayout: normalizeHabitLayout(habitLayout),
     redoPaths: [],
     undoStack: [],
     redoStack: [],
@@ -106,6 +114,9 @@ let state = {
   selectedId: null,
   elements: structuredClone(seedElements),
   penPaths: [],
+  habitChecks: {},
+  habitRows: structuredClone(defaultHabitRows),
+  habitLayout: "week",
   redoPaths: [],
   undoStack: [],
   redoStack: [],
@@ -162,6 +173,9 @@ function normalizeState() {
           paper: page.paper || state.activePaper || "lined",
           elements: normalizeElements(page.elements || []),
           penPaths: structuredClone(page.penPaths || []),
+          habitChecks: normalizeHabitChecks(page.habitChecks),
+          habitRows: normalizeHabitRows(page.habitRows),
+          habitLayout: normalizeHabitLayout(page.habitLayout),
           redoPaths: structuredClone(page.redoPaths || []),
           undoStack: structuredClone(page.undoStack || []),
           redoStack: structuredClone(page.redoStack || []),
@@ -236,6 +250,38 @@ function normalizeElements(elements) {
   }));
 }
 
+function normalizeHabitChecks(checks) {
+  if (!checks || typeof checks !== "object" || Array.isArray(checks)) return {};
+  return Object.fromEntries(Object.entries(checks).filter(([key, value]) => /^h-\d+-\d+$/.test(key) && typeof value === "boolean"));
+}
+
+function normalizeHabitRows(rows) {
+  if (!Array.isArray(rows)) return structuredClone(defaultHabitRows);
+  const cleaned = rows.map((row) => String(row || "").trim()).filter(Boolean).slice(0, 12);
+  return cleaned.length ? cleaned : structuredClone(defaultHabitRows);
+}
+
+function normalizeHabitLayout(layout) {
+  return Object.hasOwn(habitLayouts, layout) ? layout : "week";
+}
+
+function habitDayLabels() {
+  return habitLayouts[normalizeHabitLayout(state.habitLayout)];
+}
+
+function habitCheckKey(row, day) {
+  return `h-${row}-${day}`;
+}
+
+function defaultHabitChecked(row, day) {
+  return (day + row) % 4 !== 0;
+}
+
+function isHabitChecked(row, day) {
+  const key = habitCheckKey(row, day);
+  return state.habitChecks?.[key] ?? defaultHabitChecked(row, day);
+}
+
 function currentJournal() {
   return currentJournals().find((journal) => journal.id === state.activeJournal) || currentJournals()[0];
 }
@@ -251,6 +297,9 @@ function loadPageIntoState(page) {
   state.activePaper = page.paper || "lined";
   state.elements = normalizeElements(page.elements || []);
   state.penPaths = structuredClone(page.penPaths || []);
+  state.habitChecks = normalizeHabitChecks(page.habitChecks);
+  state.habitRows = normalizeHabitRows(page.habitRows);
+  state.habitLayout = normalizeHabitLayout(page.habitLayout);
   state.redoPaths = structuredClone(page.redoPaths || []);
   state.undoStack = structuredClone(page.undoStack || []);
   state.redoStack = structuredClone(page.redoStack || []);
@@ -264,6 +313,9 @@ function capturePageState() {
   page.paper = state.activePaper;
   page.elements = structuredClone(state.elements || []);
   page.penPaths = structuredClone(state.penPaths || []);
+  page.habitChecks = normalizeHabitChecks(state.habitChecks);
+  page.habitRows = normalizeHabitRows(state.habitRows);
+  page.habitLayout = normalizeHabitLayout(state.habitLayout);
   page.redoPaths = structuredClone(state.redoPaths || []);
   page.undoStack = structuredClone(state.undoStack || []);
   page.redoStack = structuredClone(state.redoStack || []);
@@ -277,6 +329,9 @@ function pageSnapshot() {
     paper: state.activePaper,
     elements: structuredClone(state.elements || []),
     penPaths: structuredClone(state.penPaths || []),
+    habitChecks: normalizeHabitChecks(state.habitChecks),
+    habitRows: normalizeHabitRows(state.habitRows),
+    habitLayout: normalizeHabitLayout(state.habitLayout),
     selectedId: state.selectedId,
   };
 }
@@ -287,6 +342,9 @@ function restoreSnapshot(snapshot) {
   state.activePaper = snapshot.paper || "lined";
   state.elements = structuredClone(snapshot.elements || []);
   state.penPaths = structuredClone(snapshot.penPaths || []);
+  state.habitChecks = normalizeHabitChecks(snapshot.habitChecks);
+  state.habitRows = normalizeHabitRows(snapshot.habitRows);
+  state.habitLayout = normalizeHabitLayout(snapshot.habitLayout);
   state.selectedId = snapshot.selectedId || null;
   state.redoPaths = [];
 }
@@ -929,12 +987,18 @@ function weeklyPage() {
 }
 
 function trackerPage() {
-  const habits = ["Drink water", "Move my body", "Read", "No sugar", "Meditate"];
-  const days = ["M", "T", "W", "T", "F", "S", "S"];
+  const days = habitDayLabels();
+  const rows = normalizeHabitRows(state.habitRows);
   return `
     <div class="tape-label blue">Apr 30 - May 6</div>
+    <div class="habit-controls" aria-label="Habit tracker controls">
+      <button data-action="add-habit-row">+ Habit</button>
+      <div class="habit-layout-toggle">
+        ${Object.keys(habitLayouts).map((layout) => `<button class="${state.habitLayout === layout ? "active" : ""}" data-habit-layout="${layout}" aria-pressed="${state.habitLayout === layout}">${layout === "week" ? "Week" : "Month"}</button>`).join("")}
+      </div>
+    </div>
     <h2>habit tracker</h2>
-    <div class="habit-grid"><div></div>${days.map((day) => `<b>${day}</b>`).join("")}${habits.map((habit, row) => `<span>${habit}</span>${days.map((_, index) => `<i class="${(index + row) % 4 !== 0 ? "filled" : ""}"></i>`).join("")}`).join("")}</div>
+    <div class="habit-scroll"><div class="habit-grid habit-${state.habitLayout}"><div></div>${days.map((day) => `<b>${day}</b>`).join("")}${rows.map((habit, row) => `<span class="habit-row-label"><button class="habit-name" data-habit-name="${row}" aria-label="Rename ${escapeHtml(habit)}">${escapeHtml(habit)}</button><button class="habit-remove" data-habit-remove="${row}" aria-label="Remove ${escapeHtml(habit)}">-</button></span>${days.map((day, index) => `<button class="habit-check ${isHabitChecked(row, index) ? "filled" : ""}" data-habit-row="${row}" data-habit-day="${index}" aria-pressed="${isHabitChecked(row, index)}" aria-label="${escapeHtml(habit)} ${day}"></button>`).join("")}`).join("")}</div></div>
     <h2>mood tracker</h2>
     <div class="moods">${["&#9786;", "&#9787;", "-", "&#9675;", "&#9825;", "&#9685;", "&#9733;"].map((mood, index) => `<span>${mood}<small>${["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][index]}</small></span>`).join("")}</div>
     <div class="notes-box"><div class="tape-label small">notes</div></div>
@@ -1051,6 +1115,22 @@ function bind() {
       render();
       persist();
     });
+  });
+
+  document.querySelectorAll("[data-habit-row][data-habit-day]").forEach((button) => {
+    button.addEventListener("click", () => toggleHabitCheck(button.dataset.habitRow, button.dataset.habitDay));
+  });
+
+  document.querySelectorAll("[data-habit-name]").forEach((button) => {
+    button.addEventListener("click", () => renameHabitRow(button.dataset.habitName));
+  });
+
+  document.querySelectorAll("[data-habit-remove]").forEach((button) => {
+    button.addEventListener("click", () => removeHabitRow(button.dataset.habitRemove));
+  });
+
+  document.querySelectorAll("[data-habit-layout]").forEach((button) => {
+    button.addEventListener("click", () => setHabitLayout(button.dataset.habitLayout));
   });
 
   document.querySelectorAll("[data-color]").forEach((button) => {
@@ -1239,6 +1319,81 @@ function runCoverAction(cover) {
   persist();
 }
 
+function toggleHabitCheck(rowValue, dayValue) {
+  const row = Number(rowValue);
+  const day = Number(dayValue);
+  const rows = normalizeHabitRows(state.habitRows);
+  const days = habitDayLabels();
+  if (!Number.isInteger(row) || !Number.isInteger(day)) return;
+  if (row < 0 || row >= rows.length || day < 0 || day >= days.length) return;
+  pushHistory();
+  const key = habitCheckKey(row, day);
+  state.habitChecks = normalizeHabitChecks(state.habitChecks);
+  state.habitChecks[key] = !isHabitChecked(row, day);
+  render();
+  persist();
+}
+
+function renameHabitRow(indexValue) {
+  const index = Number(indexValue);
+  const rows = normalizeHabitRows(state.habitRows);
+  if (!Number.isInteger(index) || index < 0 || index >= rows.length) return;
+  const nextName = window.prompt("Habit name", rows[index]);
+  if (!nextName?.trim()) return;
+  pushHistory();
+  rows[index] = nextName.trim().slice(0, 28);
+  state.habitRows = rows;
+  render();
+  persist();
+}
+
+function addHabitRow() {
+  const rows = normalizeHabitRows(state.habitRows);
+  if (rows.length >= 12) {
+    window.alert("Alex can show up to 12 habits on one tracker.");
+    return;
+  }
+  const nextName = window.prompt("New habit", "New habit");
+  if (!nextName?.trim()) return;
+  pushHistory();
+  state.habitRows = [...rows, nextName.trim().slice(0, 28)];
+  render();
+  persist();
+}
+
+function removeHabitRow(indexValue) {
+  const index = Number(indexValue);
+  const rows = normalizeHabitRows(state.habitRows);
+  if (!Number.isInteger(index) || index < 0 || index >= rows.length) return;
+  if (rows.length <= 1) {
+    window.alert("Keep at least one habit row.");
+    return;
+  }
+  if (!window.confirm(`Remove "${rows[index]}" from this tracker?`)) return;
+  pushHistory();
+  const nextChecks = {};
+  Object.entries(normalizeHabitChecks(state.habitChecks)).forEach(([key, value]) => {
+    const [, rowPart, dayPart] = key.split("-");
+    const row = Number(rowPart);
+    const day = Number(dayPart);
+    if (row < index) nextChecks[habitCheckKey(row, day)] = value;
+    if (row > index) nextChecks[habitCheckKey(row - 1, day)] = value;
+  });
+  state.habitRows = rows.filter((_, row) => row !== index);
+  state.habitChecks = nextChecks;
+  render();
+  persist();
+}
+
+function setHabitLayout(layout) {
+  const nextLayout = normalizeHabitLayout(layout);
+  if (nextLayout === state.habitLayout) return;
+  pushHistory();
+  state.habitLayout = nextLayout;
+  render();
+  persist();
+}
+
 function clearAccidentalSelection() {
   const active = document.activeElement;
   if (active?.matches?.("input, textarea, [contenteditable='true']")) return;
@@ -1356,6 +1511,10 @@ function handleAction(action, event) {
   if (action === "move-page-down") reorderPage(1);
   if (action === "rename-page") renamePage();
   if (action === "delete-page") deletePage();
+  if (action === "add-habit-row") {
+    addHabitRow();
+    return;
+  }
   if (action === "clear-ink") {
     if (state.penPaths.length && !window.confirm("Clear all handwriting on this page?")) return;
     pushHistory();
@@ -1876,7 +2035,7 @@ function duplicatePage() {
   capturePageState();
   const journal = currentJournal();
   const page = currentPage();
-  const copy = makePage(`${page.title} Copy`, page.template, page.paper, page.elements, page.penPaths);
+  const copy = makePage(`${page.title} Copy`, page.template, page.paper, page.elements, page.penPaths, page.habitChecks, page.habitRows, page.habitLayout);
   const index = journal.pages.findIndex((entry) => entry.id === page.id);
   journal.pages.splice(index + 1, 0, copy);
   loadPageIntoState(copy);
@@ -2184,6 +2343,9 @@ function importNotebook(event) {
           paper: page.paper || "lined",
           elements: Array.isArray(page.elements) ? page.elements : [],
           penPaths: Array.isArray(page.penPaths) ? page.penPaths : [],
+          habitChecks: normalizeHabitChecks(page.habitChecks),
+          habitRows: normalizeHabitRows(page.habitRows),
+          habitLayout: normalizeHabitLayout(page.habitLayout),
           redoPaths: [],
           updatedAt: page.updatedAt || new Date().toISOString(),
         })),
@@ -2958,9 +3120,8 @@ function unlockPageAfterWriting() {
 
 function paintPaths() {
   if (!canvas) return;
-  const rect = canvas.getBoundingClientRect();
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, rect.width, rect.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   state.penPaths.forEach((path) => {
