@@ -65,7 +65,7 @@ const defaultSettings = {
   startupView: "library",
 };
 
-function makePage(title = "Notebook Page", template = "notebook", paper = "lined", elements = [], penPaths = [], habitChecks = {}, habitRows = defaultHabitRows, habitLayout = "week", moodChecks = {}, readingEntries = []) {
+function makePage(title = "Notebook Page", template = "notebook", paper = "lined", elements = [], penPaths = [], habitChecks = {}, habitRows = defaultHabitRows, habitLayout = "week", moodChecks = {}, readingEntries = [], templateData = {}) {
   return {
     id: `page-${Date.now()}-${Math.round(Math.random() * 100000)}`,
     title,
@@ -78,6 +78,7 @@ function makePage(title = "Notebook Page", template = "notebook", paper = "lined
     habitLayout: normalizeHabitLayout(habitLayout),
     moodChecks: normalizeMoodChecks(moodChecks),
     readingEntries: normalizeReadingEntries(readingEntries),
+    templateData: normalizeTemplateData(templateData),
     redoPaths: [],
     undoStack: [],
     redoStack: [],
@@ -124,6 +125,7 @@ let state = {
   habitLayout: "week",
   moodChecks: {},
   readingEntries: [],
+  templateData: {},
   redoPaths: [],
   undoStack: [],
   redoStack: [],
@@ -185,6 +187,7 @@ function normalizeState() {
           habitLayout: normalizeHabitLayout(page.habitLayout),
           moodChecks: normalizeMoodChecks(page.moodChecks),
           readingEntries: normalizeReadingEntries(page.readingEntries),
+          templateData: normalizeTemplateData(page.templateData),
           redoPaths: structuredClone(page.redoPaths || []),
           undoStack: structuredClone(page.undoStack || []),
           redoStack: structuredClone(page.redoStack || []),
@@ -294,6 +297,47 @@ function normalizeReadingEntries(entries) {
   })).slice(0, 20);
 }
 
+function normalizeTemplateData(data) {
+  const source = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const daily = source.daily && typeof source.daily === "object" ? source.daily : {};
+  const topThree = Array.isArray(daily.topThree) ? daily.topThree : [];
+  const schedule = Array.isArray(daily.schedule) ? daily.schedule : [];
+  const weekly = source.weekly && typeof source.weekly === "object" ? source.weekly : {};
+  return {
+    daily: {
+      topThree: Array.from({ length: 3 }, (_, index) => ({
+        done: Boolean(topThree[index]?.done),
+        text: String(topThree[index]?.text || "").slice(0, 80),
+      })),
+      schedule: Array.from({ length: 4 }, (_, index) => String(schedule[index] || "").slice(0, 80)),
+      joys: String(daily.joys || "").slice(0, 200),
+    },
+    weekly: Object.fromEntries(Array.from({ length: 7 }, (_, day) => {
+      const slots = Array.isArray(weekly[day]) ? weekly[day] : [];
+      return [day, Array.from({ length: 2 }, (_, slot) => String(slots[slot] || "").slice(0, 80))];
+    })),
+  };
+}
+
+function startOfWeek(date) {
+  const result = new Date(date);
+  result.setDate(result.getDate() - ((result.getDay() + 6) % 7));
+  return result;
+}
+
+function currentWeekDates() {
+  const monday = startOfWeek(new Date());
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + index);
+    return day;
+  });
+}
+
+function shortDateLabel(date) {
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function habitCheckKey(row, day) {
   return `h-${row}-${day}`;
 }
@@ -336,6 +380,7 @@ function loadPageIntoState(page) {
   state.habitLayout = normalizeHabitLayout(page.habitLayout);
   state.moodChecks = normalizeMoodChecks(page.moodChecks);
   state.readingEntries = normalizeReadingEntries(page.readingEntries);
+  state.templateData = normalizeTemplateData(page.templateData);
   state.redoPaths = structuredClone(page.redoPaths || []);
   state.undoStack = structuredClone(page.undoStack || []);
   state.redoStack = structuredClone(page.redoStack || []);
@@ -354,6 +399,7 @@ function capturePageState() {
   page.habitLayout = normalizeHabitLayout(state.habitLayout);
   page.moodChecks = normalizeMoodChecks(state.moodChecks);
   page.readingEntries = normalizeReadingEntries(state.readingEntries);
+  page.templateData = normalizeTemplateData(state.templateData);
   page.redoPaths = structuredClone(state.redoPaths || []);
   page.undoStack = structuredClone(state.undoStack || []);
   page.redoStack = structuredClone(state.redoStack || []);
@@ -372,6 +418,7 @@ function pageSnapshot() {
     habitLayout: normalizeHabitLayout(state.habitLayout),
     moodChecks: normalizeMoodChecks(state.moodChecks),
     readingEntries: normalizeReadingEntries(state.readingEntries),
+    templateData: normalizeTemplateData(state.templateData),
     selectedId: state.selectedId,
   };
 }
@@ -387,6 +434,7 @@ function restoreSnapshot(snapshot) {
   state.habitLayout = normalizeHabitLayout(snapshot.habitLayout);
   state.moodChecks = normalizeMoodChecks(snapshot.moodChecks);
   state.readingEntries = normalizeReadingEntries(snapshot.readingEntries);
+  state.templateData = normalizeTemplateData(snapshot.templateData);
   state.selectedId = snapshot.selectedId || null;
   state.redoPaths = [];
 }
@@ -1017,25 +1065,25 @@ function notebookPage(side) {
 }
 
 function weeklyPage() {
-  const days = [
-    ["Mon", "12", "Morning notes", "Underline key tasks"],
-    ["Tue", "13", "Sketch ideas", "Review class notes"],
-    ["Wed", "14", "Meeting notes", "Add summary"],
-    ["Thu", "15", "Study session", "Highlight terms"],
-    ["Fri", "16", "Freewriting", "Weekly reflection"],
-    ["Sat", "17", "Reading notes", "Collect quotes"],
-    ["Sun", "18", "Plan next week", "Gentle reset"],
-  ];
-  return `<h1>Cozy Week <span>&#9825;</span></h1><div class="week-list">${days.map(([day, date, first, second]) => `
-    <div class="day-row"><div class="date-card ${day.toLowerCase()}"><span>${day}</span><strong>${date}</strong></div><ul><li>${first}</li><li>${second}</li></ul></div>
+  const data = normalizeTemplateData(state.templateData);
+  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const hints = ["Morning notes", "Sketch ideas", "Meeting notes", "Study session", "Freewriting", "Reading notes", "Plan next week"];
+  const dates = currentWeekDates();
+  const today = new Date().getDate();
+  return `<h1>Cozy Week <span>&#9825;</span></h1><div class="week-list">${dayNames.map((day, index) => `
+    <div class="day-row ${dates[index].getDate() === today ? "today" : ""}"><div class="date-card ${day.toLowerCase()}"><span>${day}</span><strong>${dates[index].getDate()}</strong></div><div class="day-entries">${[0, 1].map((slot) => `<input class="day-entry" data-week-day="${index}" data-week-slot="${slot}" value="${escapeHtml(data.weekly[index][slot])}" placeholder="${slot === 0 ? hints[index] : "Add a note"}" maxlength="80" />`).join("")}</div></div>
   `).join("")}</div>`;
 }
 
 function trackerPage() {
   const days = habitDayLabels();
   const rows = normalizeHabitRows(state.habitRows);
+  const week = currentWeekDates();
+  const rangeLabel = state.habitLayout === "month"
+    ? new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : `${shortDateLabel(week[0])} - ${shortDateLabel(week[6])}`;
   return `
-    <div class="tape-label blue">Apr 30 - May 6</div>
+    <div class="tape-label blue">${rangeLabel}</div>
     <div class="habit-controls" aria-label="Habit tracker controls">
       <button data-action="add-habit-row">+ Habit</button>
       <div class="habit-layout-toggle">
@@ -1054,10 +1102,14 @@ function trackerPage() {
 }
 
 function dailyPage() {
-  return `<h1>Today <span>&#9825;</span></h1><div class="daily-grid">
-    <section><h2>top three</h2><p>&#9744; gentle morning<br>&#9744; write one page<br>&#9744; tidy desk</p></section>
-    <section><h2>schedule</h2><p>9:00 tea + planning<br>12:30 lunch walk<br>18:00 reset</p></section>
-    <section><h2>little joys</h2><p>fresh flowers, soft socks, music</p></section>
+  const daily = normalizeTemplateData(state.templateData).daily;
+  const taskHints = ["gentle morning", "write one page", "tidy desk"];
+  const scheduleHints = ["9:00 tea + planning", "12:30 lunch walk", "15:00 deep focus", "18:00 reset"];
+  const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  return `<h1>Today <span>&#9825;</span></h1><div class="today-date">${todayLabel}</div><div class="daily-grid">
+    <section><h2>top three</h2><div class="daily-tasks">${daily.topThree.map((task, index) => `<div class="daily-task"><button class="daily-task-check ${task.done ? "done" : ""}" data-daily-task="${index}" aria-pressed="${task.done}" aria-label="Toggle task ${index + 1}"></button><input class="daily-task-text ${task.done ? "done" : ""}" data-daily-field="task" data-daily-index="${index}" value="${escapeHtml(task.text)}" placeholder="${taskHints[index]}" maxlength="80" /></div>`).join("")}</div></section>
+    <section><h2>schedule</h2><div class="daily-schedule">${daily.schedule.map((entry, index) => `<input class="daily-schedule-entry" data-daily-field="schedule" data-daily-index="${index}" value="${escapeHtml(entry)}" placeholder="${scheduleHints[index]}" maxlength="80" />`).join("")}</div></section>
+    <section><h2>little joys</h2><textarea class="daily-joys" data-daily-field="joys" data-daily-index="0" placeholder="fresh flowers, soft socks, music" maxlength="200">${escapeHtml(daily.joys)}</textarea></section>
   </div>`;
 }
 
@@ -1066,21 +1118,23 @@ function habitPage(title) {
 }
 
 function readingPage() {
-  const entries = normalizeReadingEntries(state.readingEntries);
+  const saved = normalizeReadingEntries(state.readingEntries);
+  const entries = saved.length ? saved : [{ title: "", author: "", quote: "", thoughts: "", rating: 0 }];
   return `<h1>Reading Log</h1>
     <div class="reading-form">
-      <div class="reading-fields">
-        <input class="reading-input" data-reading-field="title" placeholder="Book title" value="${escapeHtml(entries[0]?.title || "")}" maxlength="100" />
-        <input class="reading-input" data-reading-field="author" placeholder="Author" value="${escapeHtml(entries[0]?.author || "")}" maxlength="100" />
-        <textarea class="reading-input reading-textarea" data-reading-field="quote" placeholder="Favorite quote" maxlength="300">${escapeHtml(entries[0]?.quote || "")}</textarea>
-        <textarea class="reading-input reading-textarea" data-reading-field="thoughts" placeholder="Thoughts & notes" maxlength="500">${escapeHtml(entries[0]?.thoughts || "")}</textarea>
-        <div class="reading-rating">
-          <label>Rating:</label>
-          <div class="rating-buttons">
-            ${[1,2,3,4,5].map((star) => `<button class="rating-star ${entries[0]?.rating >= star ? "filled" : ""}" data-rating="${star}" aria-pressed="${entries[0]?.rating >= star}">★</button>`).join("")}
-          </div>
+      ${entries.map((entry, index) => `
+      <div class="reading-card">
+        <div class="reading-card-top">
+          <input class="reading-input" data-reading-field="title" data-reading-index="${index}" placeholder="Book title" value="${escapeHtml(entry.title)}" maxlength="100" />
+          ${entries.length > 1 ? `<button class="reading-remove" data-reading-remove="${index}" aria-label="Remove book">-</button>` : ""}
         </div>
-      </div>
+        <input class="reading-input" data-reading-field="author" data-reading-index="${index}" placeholder="Author" value="${escapeHtml(entry.author)}" maxlength="100" />
+        <textarea class="reading-input reading-textarea" data-reading-field="thoughts" data-reading-index="${index}" placeholder="Thoughts, favorite quotes..." maxlength="500">${escapeHtml(entry.thoughts)}</textarea>
+        <div class="rating-buttons">
+          ${[1, 2, 3, 4, 5].map((star) => `<button class="rating-star ${entry.rating >= star ? "filled" : ""}" data-rating="${star}" data-reading-index="${index}" aria-pressed="${entry.rating >= star}" aria-label="Rate ${star} of 5">&#9733;</button>`).join("")}
+        </div>
+      </div>`).join("")}
+      <button class="reading-add" data-reading-add>+ Add a book</button>
     </div>`;
 }
 
@@ -1110,12 +1164,23 @@ function bindDelegatedEvents() {
     const moodButton = event.target.closest?.("[data-mood-day]");
     if (moodButton) return toggleMoodDay(moodButton.dataset.moodDay, moodButton.dataset.moodValue);
     const ratingButton = event.target.closest?.("[data-rating]");
-    if (ratingButton) return setReadingRating(ratingButton.dataset.rating);
+    if (ratingButton) return setReadingRating(ratingButton.dataset.readingIndex, ratingButton.dataset.rating);
+    const readingAdd = event.target.closest?.("[data-reading-add]");
+    if (readingAdd) return addReadingEntry();
+    const readingRemove = event.target.closest?.("[data-reading-remove]");
+    if (readingRemove) return removeReadingEntry(readingRemove.dataset.readingRemove);
+    const dailyTask = event.target.closest?.("[data-daily-task]");
+    if (dailyTask) return toggleDailyTask(dailyTask.dataset.dailyTask);
   });
 
   document.addEventListener("input", (event) => {
-    if (event.target.matches?.("[data-reading-field]")) {
-      updateReadingEntry(event.target.dataset.readingField, event.target.value);
+    const target = event.target;
+    if (target.matches?.("[data-reading-field]")) {
+      updateReadingEntry(target.dataset.readingIndex, target.dataset.readingField, target.value);
+    } else if (target.matches?.("[data-daily-field]")) {
+      updateDailyField(target.dataset.dailyField, target.dataset.dailyIndex, target.value);
+    } else if (target.matches?.("[data-week-day]")) {
+      updateWeekEntry(target.dataset.weekDay, target.dataset.weekSlot, target.value);
     }
   });
 }
@@ -1483,25 +1548,92 @@ function toggleMoodDay(dayValue, moodValue) {
   persist();
 }
 
-function updateReadingEntry(field, value) {
+function blankReadingEntry() {
+  return { title: "", author: "", quote: "", thoughts: "", rating: 0 };
+}
+
+function updateReadingEntry(indexValue, field, value) {
+  const index = Number(indexValue);
+  if (!Number.isInteger(index) || index < 0 || index >= 20) return;
   const entries = normalizeReadingEntries(state.readingEntries);
-  if (!entries[0]) entries[0] = { title: "", author: "", quote: "", thoughts: "", rating: 0 };
-  if (field === "title") entries[0].title = String(value).trim().slice(0, 100);
-  else if (field === "author") entries[0].author = String(value).trim().slice(0, 100);
-  else if (field === "quote") entries[0].quote = String(value).trim().slice(0, 300);
-  else if (field === "thoughts") entries[0].thoughts = String(value).trim().slice(0, 500);
+  while (entries.length <= index) entries.push(blankReadingEntry());
+  if (field === "title") entries[index].title = String(value).slice(0, 100);
+  else if (field === "author") entries[index].author = String(value).slice(0, 100);
+  else if (field === "quote") entries[index].quote = String(value).slice(0, 300);
+  else if (field === "thoughts") entries[index].thoughts = String(value).slice(0, 500);
+  else return;
   state.readingEntries = entries;
   persist();
 }
 
-function setReadingRating(ratingValue) {
+function setReadingRating(indexValue, ratingValue) {
+  const index = Number(indexValue);
   const rating = Number(ratingValue);
+  if (!Number.isInteger(index) || index < 0 || index >= 20) return;
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;
   const entries = normalizeReadingEntries(state.readingEntries);
-  if (!entries[0]) entries[0] = { title: "", author: "", quote: "", thoughts: "", rating: 0 };
-  entries[0].rating = entries[0].rating === rating ? 0 : rating;
+  while (entries.length <= index) entries.push(blankReadingEntry());
+  pushHistory();
+  entries[index].rating = entries[index].rating === rating ? 0 : rating;
   state.readingEntries = entries;
   render();
+  persist();
+}
+
+function addReadingEntry() {
+  const entries = normalizeReadingEntries(state.readingEntries);
+  if (entries.length >= 20) {
+    window.alert("Alex can keep up to 20 books on one log.");
+    return;
+  }
+  pushHistory();
+  state.readingEntries = [...(entries.length ? entries : [blankReadingEntry()]), blankReadingEntry()];
+  render();
+  persist();
+}
+
+function removeReadingEntry(indexValue) {
+  const index = Number(indexValue);
+  const entries = normalizeReadingEntries(state.readingEntries);
+  if (!Number.isInteger(index) || index < 0 || index >= entries.length) return;
+  const label = entries[index].title || "this book";
+  if (!window.confirm(`Remove "${label}" from the reading log?`)) return;
+  pushHistory();
+  state.readingEntries = entries.filter((_, entryIndex) => entryIndex !== index);
+  render();
+  persist();
+}
+
+function toggleDailyTask(indexValue) {
+  const index = Number(indexValue);
+  if (!Number.isInteger(index) || index < 0 || index > 2) return;
+  pushHistory();
+  const data = normalizeTemplateData(state.templateData);
+  data.daily.topThree[index].done = !data.daily.topThree[index].done;
+  state.templateData = data;
+  render();
+  persist();
+}
+
+function updateDailyField(field, indexValue, value) {
+  const index = Number(indexValue);
+  const data = normalizeTemplateData(state.templateData);
+  if (field === "task" && index >= 0 && index < 3) data.daily.topThree[index].text = String(value).slice(0, 80);
+  else if (field === "schedule" && index >= 0 && index < 4) data.daily.schedule[index] = String(value).slice(0, 80);
+  else if (field === "joys") data.daily.joys = String(value).slice(0, 200);
+  else return;
+  state.templateData = data;
+  persist();
+}
+
+function updateWeekEntry(dayValue, slotValue, value) {
+  const day = Number(dayValue);
+  const slot = Number(slotValue);
+  if (!Number.isInteger(day) || day < 0 || day > 6) return;
+  if (!Number.isInteger(slot) || slot < 0 || slot > 1) return;
+  const data = normalizeTemplateData(state.templateData);
+  data.weekly[day][slot] = String(value).slice(0, 80);
+  state.templateData = data;
   persist();
 }
 
@@ -2146,7 +2278,7 @@ function duplicatePage() {
   capturePageState();
   const journal = currentJournal();
   const page = currentPage();
-  const copy = makePage(`${page.title} Copy`, page.template, page.paper, page.elements, page.penPaths, page.habitChecks, page.habitRows, page.habitLayout, page.moodChecks, page.readingEntries);
+  const copy = makePage(`${page.title} Copy`, page.template, page.paper, page.elements, page.penPaths, page.habitChecks, page.habitRows, page.habitLayout, page.moodChecks, page.readingEntries, page.templateData);
   const index = journal.pages.findIndex((entry) => entry.id === page.id);
   journal.pages.splice(index + 1, 0, copy);
   loadPageIntoState(copy);
@@ -2459,6 +2591,7 @@ function importNotebook(event) {
           habitLayout: normalizeHabitLayout(page.habitLayout),
           moodChecks: normalizeMoodChecks(page.moodChecks),
           readingEntries: normalizeReadingEntries(page.readingEntries),
+          templateData: normalizeTemplateData(page.templateData),
           redoPaths: [],
           updatedAt: page.updatedAt || new Date().toISOString(),
         })),

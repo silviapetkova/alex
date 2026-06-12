@@ -135,3 +135,5 @@ Phase 4 mostly complete. Next: performance monitoring, mobile optimization, and 
 - Wired the left rail icons to switch Pages, Pens, Paper, Marks, and Export panels.
 - Made Habit Tracker check circles tappable and saved per page while keeping the default habit names static.
 - Made Habit Tracker names editable, added per-page habit row add/remove controls, and added a saved Week/Month layout choice.
+- Repaired regressions from the feature pass (stacking listeners, vanishing ink, layout breaks) and added a Windows-runnable browser verification script.
+- Turned the planner templates into real interactive pages: Daily has tappable top-three tasks, an editable schedule, little joys, and today's real date; Weekly shows the actual current week with editable entries per day and highlights today; the Habit Tracker label shows the real week range or current month; the Reading Log keeps up to 20 books with add/remove and per-book star ratings. All saved per page.

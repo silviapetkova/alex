@@ -117,13 +117,13 @@ def run():
         page.click("[data-action='undo']")
         page.wait_for_timeout(300)
 
-        # --- Reading log: type, rate, persist ---
+        # --- Reading log: type, rate, add a second book, remove it ---
         page.click("[data-template='reading']")
-        title_input = "[data-reading-field='title']"
+        title_input = "[data-reading-field='title'][data-reading-index='0']"
         page.wait_for_selector(title_input)
         page.fill(title_input, "The Secret Garden")
         page.wait_for_timeout(400)
-        page.click("[data-rating='4']")
+        page.click("[data-rating='4'][data-reading-index='0']")
         page.wait_for_timeout(400)
         stars = page.locator(".rating-star.filled").count()
         if stars != 4:
@@ -134,13 +134,58 @@ def run():
         entry = (active_page(page).get("readingEntries") or [{}])[0]
         if entry.get("title") != "The Secret Garden" or entry.get("rating") != 4:
             failures.append(f"reading entry not persisted: {entry}")
+        page.click("[data-reading-add]")
+        page.wait_for_timeout(300)
+        cards = page.locator(".reading-card").count()
+        if cards != 2:
+            failures.append(f"expected 2 reading cards after add, got {cards}")
+        page.fill("[data-reading-field='title'][data-reading-index='1']", "Anne of Green Gables")
+        page.wait_for_timeout(400)
+        entries = active_page(page).get("readingEntries") or []
+        if len(entries) != 2 or entries[1].get("title") != "Anne of Green Gables":
+            failures.append(f"second book not persisted: {entries}")
+        page.once("dialog", lambda d: d.accept())
+        page.click("[data-reading-remove='1']")
+        page.wait_for_timeout(400)
+        entries = active_page(page).get("readingEntries") or []
+        if len(entries) != 1 or entries[0].get("title") != "The Secret Garden":
+            failures.append(f"remove book failed: {entries}")
 
-        # --- Daily template paragraphs are not 7-column grids ---
+        # --- Daily page: toggle a task, edit schedule, persists ---
         page.click("[data-template='daily']")
-        page.wait_for_selector(".daily-grid p")
-        display = page.eval_on_selector(".daily-grid p", "el => getComputedStyle(el).display")
-        if display == "grid":
-            failures.append(".daily-grid p is rendered as a grid (CSS collision)")
+        task_check = "[data-daily-task='0']"
+        page.wait_for_selector(task_check)
+        page.fill("[data-daily-field='task'][data-daily-index='0']", "water the plants")
+        page.wait_for_timeout(400)
+        page.click(task_check)
+        page.wait_for_timeout(300)
+        pressed = page.get_attribute(task_check, "aria-pressed")
+        if pressed != "true":
+            failures.append(f"daily task did not toggle done, aria-pressed={pressed}")
+        task_value = page.input_value("[data-daily-field='task'][data-daily-index='0']")
+        if task_value != "water the plants":
+            failures.append(f"daily task text lost after toggle: '{task_value}'")
+        page.fill("[data-daily-field='schedule'][data-daily-index='0']", "8:00 slow breakfast")
+        page.wait_for_timeout(400)
+        saved_daily = (active_page(page).get("templateData") or {}).get("daily", {})
+        if not saved_daily.get("topThree", [{}])[0].get("done"):
+            failures.append(f"daily task done not persisted: {saved_daily}")
+        if saved_daily.get("schedule", [""])[0] != "8:00 slow breakfast":
+            failures.append(f"daily schedule not persisted: {saved_daily}")
+
+        # --- Weekly page: real dates + editable entries ---
+        page.click("[data-template='week']")
+        page.wait_for_selector("[data-week-day='0'][data-week-slot='0']")
+        import datetime
+        monday = datetime.date.today() - datetime.timedelta(days=datetime.date.today().weekday())
+        shown = page.text_content(".day-row .date-card strong")
+        if shown != str(monday.day):
+            failures.append(f"weekly Monday shows {shown}, expected {monday.day}")
+        page.fill("[data-week-day='2'][data-week-slot='0']", "library trip")
+        page.wait_for_timeout(400)
+        saved_week = (active_page(page).get("templateData") or {}).get("weekly", {})
+        if saved_week.get("2", ["", ""])[0] != "library trip":
+            failures.append(f"weekly entry not persisted: {saved_week}")
 
         # --- Storage warning stays out of the layout flow ---
         position = page.eval_on_selector("#storage-warning", "el => getComputedStyle(el).position")
