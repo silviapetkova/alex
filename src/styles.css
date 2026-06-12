@@ -827,6 +827,17 @@ button {
   }
 }
 
+.storage-warning {
+  background: linear-gradient(90deg, #ffd6d7 0%, #ffe6cc 100%);
+  border-bottom: 1px solid #ddb0b8;
+  padding: 8px 16px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  color: #7d4755;
+  text-align: center;
+  animation: slideDown 0.3s ease;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 294px minmax(620px, 1fr) 320px;

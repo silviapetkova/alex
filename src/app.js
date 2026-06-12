@@ -460,6 +460,9 @@ function render() {
           <div class="build-badge">${APP_VERSION}</div>
         </div>
       </header>
+      <div id="storage-warning" class="storage-warning" style="display: none;">
+        <span>⚠️ Running out of storage space. Consider exporting notebooks or clearing old pages.</span>
+      </div>
       <main class="workspace">
         ${leftPanel(journal)}
         <section class="canvas-zone">
@@ -3343,6 +3346,19 @@ function toolLabel() {
   return penPresets.find((entry) => entry.id === state.penPreset)?.label || "Pen";
 }
 
+function checkStorageQuota() {
+  if (!("storage" in navigator) || !("estimate" in navigator.storage)) return;
+  navigator.storage.estimate?.().then((estimate) => {
+    const percentUsed = (estimate.usage / estimate.quota) * 100;
+    const warning = document.getElementById("storage-warning");
+    if (percentUsed > 80 && warning) {
+      warning.style.display = "block";
+    } else if (warning) {
+      warning.style.display = "none";
+    }
+  }).catch(() => {});
+}
+
 function persist() {
   capturePageState();
   const note = document.getElementById("save-note");
@@ -3381,6 +3397,7 @@ function persist() {
     }));
     const freshNote = document.getElementById("save-note");
     if (freshNote) freshNote.textContent = saveStatusText();
+    checkStorageQuota();
   }, 220);
 }
 
