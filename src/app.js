@@ -119,7 +119,6 @@ let state = {
   selectedId: null,
   elements: structuredClone(seedElements),
   penPaths: [],
-  lastRenderedStrokeIndex: -1,
   habitChecks: {},
   habitRows: structuredClone(defaultHabitRows),
   habitLayout: "week",
@@ -332,7 +331,6 @@ function loadPageIntoState(page) {
   state.activePaper = page.paper || "lined";
   state.elements = normalizeElements(page.elements || []);
   state.penPaths = structuredClone(page.penPaths || []);
-  state.lastRenderedStrokeIndex = -1;
   state.habitChecks = normalizeHabitChecks(page.habitChecks);
   state.habitRows = normalizeHabitRows(page.habitRows);
   state.habitLayout = normalizeHabitLayout(page.habitLayout);
@@ -384,7 +382,6 @@ function restoreSnapshot(snapshot) {
   state.activePaper = snapshot.paper || "lined";
   state.elements = structuredClone(snapshot.elements || []);
   state.penPaths = structuredClone(snapshot.penPaths || []);
-  state.lastRenderedStrokeIndex = -1;
   state.habitChecks = normalizeHabitChecks(snapshot.habitChecks);
   state.habitRows = normalizeHabitRows(snapshot.habitRows);
   state.habitLayout = normalizeHabitLayout(snapshot.habitLayout);
@@ -1095,32 +1092,37 @@ function notesPage() {
   return blankPage("Notes");
 }
 
-function bind() {
-  window.onkeydown = handleKeyboardShortcut;
+let delegatedEventsBound = false;
+
+function bindDelegatedEvents() {
+  if (delegatedEventsBound) return;
+  delegatedEventsBound = true;
 
   document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (target.matches("[data-habit-row][data-habit-day]")) {
-      toggleHabitCheck(target.dataset.habitRow, target.dataset.habitDay);
-    } else if (target.matches("[data-habit-name]")) {
-      renameHabitRow(target.dataset.habitName);
-    } else if (target.matches("[data-habit-remove]")) {
-      removeHabitRow(target.dataset.habitRemove);
-    } else if (target.matches("[data-habit-layout]")) {
-      setHabitLayout(target.dataset.habitLayout);
-    } else if (target.matches("[data-mood-day]")) {
-      toggleMoodDay(target.dataset.moodDay, target.dataset.moodValue);
-    } else if (target.matches("[data-rating]")) {
-      setReadingRating(target.dataset.rating);
-    }
+    const habitCheck = event.target.closest?.("[data-habit-row][data-habit-day]");
+    if (habitCheck) return toggleHabitCheck(habitCheck.dataset.habitRow, habitCheck.dataset.habitDay);
+    const habitName = event.target.closest?.("[data-habit-name]");
+    if (habitName) return renameHabitRow(habitName.dataset.habitName);
+    const habitRemove = event.target.closest?.("[data-habit-remove]");
+    if (habitRemove) return removeHabitRow(habitRemove.dataset.habitRemove);
+    const habitLayout = event.target.closest?.("[data-habit-layout]");
+    if (habitLayout) return setHabitLayout(habitLayout.dataset.habitLayout);
+    const moodButton = event.target.closest?.("[data-mood-day]");
+    if (moodButton) return toggleMoodDay(moodButton.dataset.moodDay, moodButton.dataset.moodValue);
+    const ratingButton = event.target.closest?.("[data-rating]");
+    if (ratingButton) return setReadingRating(ratingButton.dataset.rating);
   });
 
   document.addEventListener("input", (event) => {
-    const target = event.target;
-    if (target.matches("[data-reading-field]")) {
-      updateReadingEntry(target.dataset.readingField, target.value);
+    if (event.target.matches?.("[data-reading-field]")) {
+      updateReadingEntry(event.target.dataset.readingField, event.target.value);
     }
   });
+}
+
+function bind() {
+  window.onkeydown = handleKeyboardShortcut;
+  bindDelegatedEvents();
 
   document.querySelectorAll("[data-tool]").forEach((button) => {
     button.addEventListener("pointerdown", (event) => {
@@ -3232,29 +3234,17 @@ function unlockPageAfterWriting() {
 function paintPaths() {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  const totalPaths = state.penPaths.length;
-  const lastIndex = state.lastRenderedStrokeIndex ?? -1;
-
-  if (lastIndex < -1 || lastIndex >= totalPaths) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    state.lastRenderedStrokeIndex = -1;
-  }
-
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-
-  const startIndex = Math.max(0, lastIndex + 1);
-  for (let i = startIndex; i < totalPaths; i += 1) {
-    const path = state.penPaths[i];
+  state.penPaths.forEach((path) => {
     ctx.save();
     ctx.globalCompositeOperation = path.composite || "source-over";
     ctx.globalAlpha = path.alpha || 1;
     ctx.strokeStyle = path.color;
     drawStrokePath(ctx, path);
     ctx.restore();
-  }
-
-  state.lastRenderedStrokeIndex = totalPaths - 1;
+  });
 }
 
 function drawSmoothPath(ctx, points) {
