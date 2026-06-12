@@ -31,12 +31,14 @@ Alex is a soft, cozy personal notebook and creative planner app. The long-term t
 
 ## Phase 4: Templates & Planning
 
-- Build a template library: blank, lined, dot grid, daily, weekly, monthly.
-- Add habit trackers, mood trackers, reading logs, and budget pages. **Done** with interactive habit tracker (tappable checks, editable names, row add/remove, week/month layouts).
-- Add custom template creation.
-- Add page backgrounds and paper textures.
-- Add reusable page layouts.
-- Add calendar-aware planner pages later.
+- Build a template library: blank, lined, dot grid, daily, weekly, monthly. **Done** with 3 bonus textures (linen, wood, concrete).
+- Add habit trackers, mood trackers, reading logs, and budget pages. **Done** with:
+  - Habit tracker (tappable checks, editable names, row add/remove, week/month layouts)
+  - Mood tracker (7 selectable moods per day with visual feedback)
+  - Reading log (editable title, author, quote, thoughts, 5-star rating)
+- Add custom template creation. (Deferred - would need template builder UI)
+- Add reusable page layouts. (Deferred - complex state management)
+- Add calendar-aware planner pages later. (Phase 5+)
 
 ## Phase 5: Export, Import, Backup
 
@@ -67,7 +69,15 @@ Alex is a soft, cozy personal notebook and creative planner app. The long-term t
 
 ## Current Focus
 
-Current narrow focus: turn static planner templates into saved interactive pages one small feature at a time.
+Phase 4 mostly complete. Next: performance monitoring, mobile optimization, and considering Phase 7 (iPad native app).
+
+## Latest Updates (Feature Complete)
+
+- Completed mood tracker interactivity: 7 daily mood selections with persistence
+- Completed reading log with editable fields: title, author, quote, thoughts, rating
+- Added page background textures: linen, wood, concrete (CSS-based, no image loading)
+- Added storage quota monitoring: warns users when >80% of localStorage used
+- Performance optimizations: event delegation, incremental canvas rendering
 
 ## Progress Log
 
