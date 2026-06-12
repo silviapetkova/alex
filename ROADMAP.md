@@ -36,9 +36,9 @@ Alex is a soft, cozy personal notebook and creative planner app. The long-term t
   - Habit tracker (tappable checks, editable names, row add/remove, week/month layouts)
   - Mood tracker (7 selectable moods per day with visual feedback)
   - Reading log (editable title, author, quote, thoughts, 5-star rating)
-- Add custom template creation. (Deferred - would need template builder UI)
-- Add reusable page layouts. (Deferred - complex state management)
-- Add calendar-aware planner pages later. (Phase 5+)
+- Add custom template creation. **Done**: save any page as a reusable template (up to 12), create new pages from it, delete saved templates.
+- Add reusable page layouts. **Done** via custom templates (template + paper + placed marks/text/tape are saved).
+- Add calendar-aware planner pages. **Done**: Monthly Plan template renders the real current month with weekday-aligned grid, highlighted today, and an editable note per day.
 
 ## Phase 5: Export, Import, Backup
 
@@ -137,3 +137,6 @@ Phase 4 mostly complete. Next: performance monitoring, mobile optimization, and 
 - Made Habit Tracker names editable, added per-page habit row add/remove controls, and added a saved Week/Month layout choice.
 - Repaired regressions from the feature pass (stacking listeners, vanishing ink, layout breaks) and added a Windows-runnable browser verification script.
 - Turned the planner templates into real interactive pages: Daily has tappable top-three tasks, an editable schedule, little joys, and today's real date; Weekly shows the actual current week with editable entries per day and highlights today; the Habit Tracker label shows the real week range or current month; the Reading Log keeps up to 20 books with add/remove and per-book star ratings. All saved per page.
+- Expanded Margin Marks from 12 to 60 stickers in five packs (Classic, Nature, Treats, Study, Celebrate) with name-based search.
+- Added a Monthly Plan template: real current-month calendar with weekday-aligned grid, highlighted today, and a saved note per day.
+- Added custom templates: save the current page (template, paper, placed marks) as a named reusable template, create new pages from it, or delete it. Page Types counts now show real per-template page counts instead of decorative numbers.

@@ -187,6 +187,56 @@ def run():
         if saved_week.get("2", ["", ""])[0] != "library trip":
             failures.append(f"weekly entry not persisted: {saved_week}")
 
+        # --- Monthly planner: real calendar, editable day note ---
+        page.click("[data-template='month']")
+        page.wait_for_selector(".month-grid")
+        today_num = page.text_content(".month-cell.today b")
+        if today_num != str(datetime.date.today().day):
+            failures.append(f"month grid today cell shows {today_num}")
+        page.fill(f"[data-month-day='{today_num}']", "dentist 3pm")
+        page.wait_for_timeout(400)
+        saved_month = (active_page(page).get("templateData") or {}).get("monthly", {})
+        if saved_month.get(str(today_num)) != "dentist 3pm":
+            failures.append(f"month note not persisted: {saved_month}")
+
+        # --- Sticker packs: switch pack, search by name, place a mark ---
+        page.click("[data-inspector-tab='Marks']")
+        page.wait_for_selector(".sticker-pack-tabs")
+        page.click("[data-sticker-pack='nature']")
+        page.wait_for_selector("[data-sticker][aria-label='tulip']")
+        before_marks = page.locator(".canvas-sticker").count()
+        page.click("[data-sticker][aria-label='tulip']")
+        page.wait_for_timeout(300)
+        after_marks = page.locator(".canvas-sticker").count()
+        if after_marks != before_marks + 1:
+            failures.append(f"sticker placement failed: {before_marks} -> {after_marks}")
+        page.fill("#sticker-search", "cupcake")
+        page.wait_for_timeout(300)
+        found = page.locator("[data-sticker]").count()
+        if found != 1:
+            failures.append(f"sticker search 'cupcake' returned {found} results")
+
+        # --- Custom templates: save current page, reuse it ---
+        indicator_before = page.text_content(".page-indicator") if page.locator(".page-indicator").count() else ""
+        page.once("dialog", lambda d: d.accept("Cozy Layout"))
+        page.click("[data-action='save-page-template']")
+        page.wait_for_selector(".custom-template-row")
+        page.wait_for_timeout(400)  # persist() is debounced 220ms
+        saved_templates = storage(page).get("customTemplates", [])
+        if len(saved_templates) != 1 or saved_templates[0].get("name") != "Cozy Layout":
+            failures.append(f"custom template not saved: {saved_templates}")
+        def active_journal_page_count():
+            data = storage(page)
+            journal = next((j for j in data.get("journals", []) if j["id"] == data.get("activeJournal")), {})
+            return len(journal.get("pages", []))
+
+        pages_before = active_journal_page_count()
+        page.click("[data-custom-template]")
+        page.wait_for_timeout(400)
+        pages_after = active_journal_page_count()
+        if pages_after != pages_before + 1:
+            failures.append(f"apply custom template did not add a page: {pages_before} -> {pages_after}")
+
         # --- Storage warning stays out of the layout flow ---
         position = page.eval_on_selector("#storage-warning", "el => getComputedStyle(el).position")
         if position != "fixed":

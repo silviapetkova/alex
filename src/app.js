@@ -2,12 +2,13 @@ const STORAGE_KEY = "alex-journal-prototype";
 const APP_VERSION = "v3";
 
 const templates = [
-  { title: "Notebook Pages", count: 18, template: "notebook", icon: "&#9636;" },
-  { title: "Daily Pages", count: 14, template: "daily", icon: "&#10022;" },
-  { title: "Habit Trackers", count: 10, template: "habit", icon: "&#10003;" },
-  { title: "Reading Logs", count: 8, template: "reading", icon: "&#9636;" },
-  { title: "Weekly Planners", count: 12, template: "week", icon: "&#9633;" },
-  { title: "Blank Pages", count: 13, template: "blank", icon: "&#9998;" },
+  { title: "Notebook Pages", template: "notebook", icon: "&#9636;" },
+  { title: "Daily Pages", template: "daily", icon: "&#10022;" },
+  { title: "Habit Trackers", template: "habit", icon: "&#10003;" },
+  { title: "Reading Logs", template: "reading", icon: "&#9636;" },
+  { title: "Weekly Planners", template: "week", icon: "&#9633;" },
+  { title: "Monthly Plans", template: "month", icon: "&#9634;" },
+  { title: "Blank Pages", template: "blank", icon: "&#9998;" },
 ];
 
 const defaultHabitRows = ["Drink water", "Move my body", "Read", "No sugar", "Meditate"];
@@ -15,7 +16,39 @@ const habitLayouts = {
   week: ["M", "T", "W", "T", "F", "S", "S"],
   month: Array.from({ length: 31 }, (_, index) => String(index + 1)),
 };
-const stickers = ["&#9825;", "&#10047;", "&#10048;", "&#9749;", "&#9729;", "&#9733;", "&#10038;", "&#128214;", "&#127872;", "&#127793;", "&#9993;", "&#128247;"];
+const stickerPacks = [
+  { id: "classic", label: "Classic", items: [
+    { glyph: "&#9825;", name: "heart" }, { glyph: "&#10047;", name: "flower" }, { glyph: "&#10048;", name: "blossom" },
+    { glyph: "&#9749;", name: "tea" }, { glyph: "&#9729;", name: "cloud" }, { glyph: "&#9733;", name: "star" },
+    { glyph: "&#10038;", name: "sparkle" }, { glyph: "&#128214;", name: "open book" }, { glyph: "&#127872;", name: "ribbon" },
+    { glyph: "&#127793;", name: "sprout" }, { glyph: "&#9993;", name: "letter" }, { glyph: "&#128247;", name: "camera" },
+  ] },
+  { id: "nature", label: "Nature", items: [
+    { glyph: "&#127799;", name: "tulip" }, { glyph: "&#127803;", name: "sunflower" }, { glyph: "&#127812;", name: "mushroom" },
+    { glyph: "&#127769;", name: "moon" }, { glyph: "&#127752;", name: "rainbow" }, { glyph: "&#127810;", name: "autumn leaf" },
+    { glyph: "&#129419;", name: "butterfly" }, { glyph: "&#128026;", name: "shell" }, { glyph: "&#127800;", name: "cherry blossom" },
+    { glyph: "&#127808;", name: "clover" }, { glyph: "&#10052;", name: "snowflake" }, { glyph: "&#9728;", name: "sun" },
+  ] },
+  { id: "treats", label: "Treats", items: [
+    { glyph: "&#129473;", name: "cupcake" }, { glyph: "&#127827;", name: "strawberry" }, { glyph: "&#129360;", name: "croissant" },
+    { glyph: "&#127856;", name: "cake" }, { glyph: "&#127855;", name: "honey" }, { glyph: "&#127850;", name: "cookie" },
+    { glyph: "&#127819;", name: "lemon" }, { glyph: "&#127825;", name: "peach" }, { glyph: "&#129371;", name: "milk" },
+    { glyph: "&#127849;", name: "donut" }, { glyph: "&#127852;", name: "candy" }, { glyph: "&#127846;", name: "ice cream" },
+  ] },
+  { id: "study", label: "Study", items: [
+    { glyph: "&#128218;", name: "books" }, { glyph: "&#9999;", name: "pencil" }, { glyph: "&#128204;", name: "pin" },
+    { glyph: "&#128206;", name: "paperclip" }, { glyph: "&#128221;", name: "memo" }, { glyph: "&#128161;", name: "idea" },
+    { glyph: "&#128269;", name: "magnifier" }, { glyph: "&#128197;", name: "calendar" }, { glyph: "&#9200;", name: "alarm" },
+    { glyph: "&#127757;", name: "globe" }, { glyph: "&#127891;", name: "graduation" }, { glyph: "&#128278;", name: "bookmark" },
+  ] },
+  { id: "celebrate", label: "Celebrate", items: [
+    { glyph: "&#127873;", name: "gift" }, { glyph: "&#127880;", name: "balloon" }, { glyph: "&#10024;", name: "sparkles" },
+    { glyph: "&#127882;", name: "confetti" }, { glyph: "&#127881;", name: "party" }, { glyph: "&#128081;", name: "crown" },
+    { glyph: "&#128142;", name: "gem" }, { glyph: "&#127942;", name: "trophy" }, { glyph: "&#127925;", name: "music" },
+    { glyph: "&#127912;", name: "art" }, { glyph: "&#128140;", name: "love letter" }, { glyph: "&#127775;", name: "glowing star" },
+  ] },
+];
+const stickers = stickerPacks.flatMap((pack) => pack.items.map((item) => item.glyph));
 const tapes = ["gingham", "blue-grid", "leaf", "dots", "linen", "ink-dots"];
 const colors = ["#202225", "#4d5256", "#e96d7b", "#c98255", "#d8aa2f", "#3c9b70", "#4f90b5", "#8a64b0", "#ffb7b9", "#f8d66d", "#9edbb8", "#a9d1e8"];
 const paperStyles = [
@@ -126,6 +159,8 @@ let state = {
   moodChecks: {},
   readingEntries: [],
   templateData: {},
+  activeStickerPack: "classic",
+  customTemplates: [],
   redoPaths: [],
   undoStack: [],
   redoStack: [],
@@ -248,6 +283,8 @@ function normalizeState() {
   if (!state.redoPaths) state.redoPaths = [];
   if (!state.undoStack) state.undoStack = [];
   if (!state.redoStack) state.redoStack = [];
+  state.customTemplates = normalizeCustomTemplates(state.customTemplates);
+  if (!stickerPacks.some((pack) => pack.id === state.activeStickerPack)) state.activeStickerPack = "classic";
 }
 
 function currentJournals() {
@@ -316,7 +353,20 @@ function normalizeTemplateData(data) {
       const slots = Array.isArray(weekly[day]) ? weekly[day] : [];
       return [day, Array.from({ length: 2 }, (_, slot) => String(slots[slot] || "").slice(0, 80))];
     })),
+    monthly: Object.fromEntries(
+      Object.entries(source.monthly && typeof source.monthly === "object" && !Array.isArray(source.monthly) ? source.monthly : {})
+        .filter(([key]) => /^([1-9]|[12]\d|3[01])$/.test(key))
+        .map(([key, value]) => [key, String(value || "").slice(0, 40)])
+        .filter(([, value]) => value)
+    ),
   };
+}
+
+function templateUseCount(templateId) {
+  return currentJournals().reduce(
+    (total, journal) => total + (journal.pages || []).filter((page) => (page.template || "notebook") === templateId).length,
+    0
+  );
 }
 
 function startOfWeek(date) {
@@ -810,17 +860,37 @@ function leftPanel(activeJournal) {
         <div class="template-list">
           ${templates.map((item) => `
             <button class="template-row ${state.activeTemplate === item.template ? "selected" : ""}" data-template="${item.template}">
-              <span class="template-icon">${item.icon}</span><span>${item.title}</span><small>${item.count}</small>
+              <span class="template-icon">${item.icon}</span><span>${item.title}</span><small>${templateUseCount(item.template)}</small>
             </button>
           `).join("")}
         </div>
+        ${normalizeCustomTemplates(state.customTemplates).length ? `
+        <div class="template-head"><span>My Templates</span></div>
+        <div class="template-list">
+          ${normalizeCustomTemplates(state.customTemplates).map((template) => `
+            <div class="custom-template-row">
+              <button class="template-row" data-custom-template="${template.id}">
+                <span class="template-icon">&#9734;</span><span>${escapeHtml(template.name)}</span>
+              </button>
+              <button class="custom-template-remove" data-custom-template-remove="${template.id}" aria-label="Delete ${escapeHtml(template.name)}">-</button>
+            </div>
+          `).join("")}
+        </div>` : ""}
+        <button class="new-journal quiet" data-action="save-page-template">${icon("plus")}<span>Save Page as Template</span></button>
       </div>
     </aside>
   `;
 }
 
+function visibleStickerItems() {
+  const query = (state.query || "").trim().toLowerCase();
+  if (query) return stickerPacks.flatMap((pack) => pack.items).filter((item) => item.name.includes(query));
+  const pack = stickerPacks.find((entry) => entry.id === state.activeStickerPack) || stickerPacks[0];
+  return pack.items;
+}
+
 function rightPanel(journal, pageData) {
-  const visibleStickers = stickers.filter((sticker) => !state.query || sticker.toLowerCase().includes(state.query.toLowerCase()));
+  const visibleStickers = visibleStickerItems();
   return `
     <aside class="right-panel">
       <div class="asset-tabs" role="tablist" aria-label="Inspector tabs">${["Pens", "Paper", "Marks", "Pages", "Export"].map((tab) => `<button class="${state.activeInspectorTab === tab ? "active" : ""}" data-inspector-tab="${tab}" role="tab" aria-selected="${state.activeInspectorTab === tab ? "true" : "false"}">${tab}</button>`).join("")}</div>
@@ -840,6 +910,7 @@ function inspectorTabContent(tab, journal, pageData, visibleStickers) {
   if (tab === "Marks") {
     return `
       <label class="search-box">${icon("search")}<input id="sticker-search" value="${state.query}" placeholder="Search marks" /></label>
+      ${state.query.trim() ? "" : `<div class="sticker-pack-tabs">${stickerPacks.map((pack) => `<button class="${(state.activeStickerPack || "classic") === pack.id ? "active" : ""}" data-sticker-pack="${pack.id}">${pack.label}</button>`).join("")}</div>`}
       ${panelSection("Margin Marks", stickerGrid(visibleStickers))}
       ${panelSection("Washi Tape", `<div class="tape-grid">${tapes.map((tape) => `<button class="${tape}" data-tape="${tape}" aria-label="${tape} tape"></button>`).join("")}</div>`)}
     `;
@@ -1037,7 +1108,8 @@ function showNotice(message, type = "success") {
 }
 
 function stickerGrid(items) {
-  return `<div class="sticker-grid">${items.map((sticker) => `<button data-sticker="${sticker}">${sticker}</button>`).join("")}</div>`;
+  if (!items.length) return `<div class="sticker-grid-empty">No marks match that search.</div>`;
+  return `<div class="sticker-grid">${items.map((item) => `<button data-sticker="${item.glyph}" title="${item.name}" aria-label="${item.name}">${item.glyph}</button>`).join("")}</div>`;
 }
 
 function panelSection(title, content) {
@@ -1047,6 +1119,7 @@ function panelSection(title, content) {
 function pageTemplate(side) {
   const template = state.activeTemplate;
   if (template === "daily") return side === "left" ? dailyPage() : notesPage();
+  if (template === "month") return side === "left" ? monthPage() : notesPage();
   if (template === "habit") return side === "left" ? habitPage("Habit Focus") : notesPage();
   if (template === "reading") return side === "left" ? readingPage() : notesPage();
   if (template === "week") return side === "left" ? weeklyPage() : trackerPage();
@@ -1117,6 +1190,23 @@ function habitPage(title) {
   return `<h1>${title}</h1>${trackerPage()}`;
 }
 
+function monthPage() {
+  const data = normalizeTemplateData(state.templateData);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstOffset = (new Date(year, month, 1).getDay() + 6) % 7;
+  const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const heads = ["M", "T", "W", "T", "F", "S", "S"].map((day) => `<b class="month-head">${day}</b>`).join("");
+  const blanks = Array.from({ length: firstOffset }, () => `<div class="month-cell empty"></div>`).join("");
+  const cells = Array.from({ length: daysInMonth }, (_, index) => {
+    const day = index + 1;
+    return `<div class="month-cell ${day === now.getDate() ? "today" : ""}"><b>${day}</b><input class="month-note" data-month-day="${day}" value="${escapeHtml(data.monthly[day] || "")}" maxlength="40" aria-label="Plan for day ${day}" /></div>`;
+  }).join("");
+  return `<h1>${monthLabel} <span>&#9825;</span></h1><div class="month-grid">${heads}${blanks}${cells}</div>`;
+}
+
 function readingPage() {
   const saved = normalizeReadingEntries(state.readingEntries);
   const entries = saved.length ? saved : [{ title: "", author: "", quote: "", thoughts: "", rating: 0 }];
@@ -1171,6 +1261,12 @@ function bindDelegatedEvents() {
     if (readingRemove) return removeReadingEntry(readingRemove.dataset.readingRemove);
     const dailyTask = event.target.closest?.("[data-daily-task]");
     if (dailyTask) return toggleDailyTask(dailyTask.dataset.dailyTask);
+    const stickerPack = event.target.closest?.("[data-sticker-pack]");
+    if (stickerPack) return setStickerPack(stickerPack.dataset.stickerPack);
+    const customTemplate = event.target.closest?.("[data-custom-template]");
+    if (customTemplate) return applyCustomTemplate(customTemplate.dataset.customTemplate);
+    const customTemplateRemove = event.target.closest?.("[data-custom-template-remove]");
+    if (customTemplateRemove) return removeCustomTemplate(customTemplateRemove.dataset.customTemplateRemove);
   });
 
   document.addEventListener("input", (event) => {
@@ -1181,6 +1277,8 @@ function bindDelegatedEvents() {
       updateDailyField(target.dataset.dailyField, target.dataset.dailyIndex, target.value);
     } else if (target.matches?.("[data-week-day]")) {
       updateWeekEntry(target.dataset.weekDay, target.dataset.weekSlot, target.value);
+    } else if (target.matches?.("[data-month-day]")) {
+      updateMonthEntry(target.dataset.monthDay, target.value);
     }
   });
 }
@@ -1637,6 +1735,81 @@ function updateWeekEntry(dayValue, slotValue, value) {
   persist();
 }
 
+function updateMonthEntry(dayValue, value) {
+  const day = Number(dayValue);
+  if (!Number.isInteger(day) || day < 1 || day > 31) return;
+  const data = normalizeTemplateData(state.templateData);
+  const text = String(value).slice(0, 40);
+  if (text) data.monthly[day] = text;
+  else delete data.monthly[day];
+  state.templateData = data;
+  persist();
+}
+
+function setStickerPack(packId) {
+  if (!stickerPacks.some((pack) => pack.id === packId)) return;
+  state.activeStickerPack = packId;
+  state.query = "";
+  render();
+}
+
+function normalizeCustomTemplates(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map((item) => ({
+    id: String(item?.id || `tpl-${Date.now()}-${Math.round(Math.random() * 100000)}`),
+    name: String(item?.name || "My Template").trim().slice(0, 40) || "My Template",
+    template: String(item?.template || "notebook"),
+    paper: String(item?.paper || "lined"),
+    elements: normalizeElements(Array.isArray(item?.elements) ? item.elements : []),
+  })).slice(0, 12);
+}
+
+function saveCustomTemplate() {
+  const existing = normalizeCustomTemplates(state.customTemplates);
+  if (existing.length >= 12) {
+    window.alert("Alex can keep up to 12 saved templates.");
+    return;
+  }
+  capturePageState();
+  const page = currentPage();
+  const name = window.prompt("Template name", page.title || "My Template");
+  if (!name?.trim()) return;
+  state.customTemplates = [...existing, {
+    id: `tpl-${Date.now()}-${Math.round(Math.random() * 100000)}`,
+    name: name.trim().slice(0, 40),
+    template: page.template || "notebook",
+    paper: page.paper || "lined",
+    elements: structuredClone(page.elements || []),
+  }];
+  render();
+  persist();
+  showNotice("Template saved");
+}
+
+function applyCustomTemplate(id) {
+  const template = normalizeCustomTemplates(state.customTemplates).find((entry) => entry.id === id);
+  if (!template) return;
+  capturePageState();
+  const journal = currentJournal();
+  const page = makePage(template.name, template.template, template.paper, template.elements);
+  const index = journal.pages.findIndex((entry) => entry.id === state.activePageId);
+  journal.pages.splice(index + 1, 0, page);
+  loadPageIntoState(page);
+  render();
+  persist();
+  showNotice(`New page from "${template.name}"`);
+}
+
+function removeCustomTemplate(id) {
+  const existing = normalizeCustomTemplates(state.customTemplates);
+  const template = existing.find((entry) => entry.id === id);
+  if (!template) return;
+  if (!window.confirm(`Delete the "${template.name}" template? Pages made from it stay.`)) return;
+  state.customTemplates = existing.filter((entry) => entry.id !== id);
+  render();
+  persist();
+}
+
 function clearAccidentalSelection() {
   const active = document.activeElement;
   if (active?.matches?.("input, textarea, [contenteditable='true']")) return;
@@ -1756,6 +1929,10 @@ function handleAction(action, event) {
   if (action === "delete-page") deletePage();
   if (action === "add-habit-row") {
     addHabitRow();
+    return;
+  }
+  if (action === "save-page-template") {
+    saveCustomTemplate();
     return;
   }
   if (action === "clear-ink") {
@@ -3520,6 +3697,7 @@ function persist() {
       libraryQuery: state.libraryQuery,
       activeInspectorTab: state.activeInspectorTab,
       settings: state.settings,
+      customTemplates: normalizeCustomTemplates(state.customTemplates),
       onboardingComplete: state.onboardingComplete,
       drawOffsetX: state.drawOffsetX,
       drawOffsetY: state.drawOffsetY,
