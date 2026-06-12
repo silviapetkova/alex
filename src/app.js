@@ -116,6 +116,7 @@ let state = {
   selectedId: null,
   elements: structuredClone(seedElements),
   penPaths: [],
+  lastRenderedStrokeIndex: -1,
   habitChecks: {},
   habitRows: structuredClone(defaultHabitRows),
   habitLayout: "week",
@@ -328,6 +329,7 @@ function loadPageIntoState(page) {
   state.activePaper = page.paper || "lined";
   state.elements = normalizeElements(page.elements || []);
   state.penPaths = structuredClone(page.penPaths || []);
+  state.lastRenderedStrokeIndex = -1;
   state.habitChecks = normalizeHabitChecks(page.habitChecks);
   state.habitRows = normalizeHabitRows(page.habitRows);
   state.habitLayout = normalizeHabitLayout(page.habitLayout);
@@ -379,6 +381,7 @@ function restoreSnapshot(snapshot) {
   state.activePaper = snapshot.paper || "lined";
   state.elements = structuredClone(snapshot.elements || []);
   state.penPaths = structuredClone(snapshot.penPaths || []);
+  state.lastRenderedStrokeIndex = -1;
   state.habitChecks = normalizeHabitChecks(snapshot.habitChecks);
   state.habitRows = normalizeHabitRows(snapshot.habitRows);
   state.habitLayout = normalizeHabitLayout(snapshot.habitLayout);
@@ -3226,17 +3229,29 @@ function unlockPageAfterWriting() {
 function paintPaths() {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const totalPaths = state.penPaths.length;
+  const lastIndex = state.lastRenderedStrokeIndex ?? -1;
+
+  if (lastIndex < -1 || lastIndex >= totalPaths) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    state.lastRenderedStrokeIndex = -1;
+  }
+
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  state.penPaths.forEach((path) => {
+
+  const startIndex = Math.max(0, lastIndex + 1);
+  for (let i = startIndex; i < totalPaths; i += 1) {
+    const path = state.penPaths[i];
     ctx.save();
     ctx.globalCompositeOperation = path.composite || "source-over";
     ctx.globalAlpha = path.alpha || 1;
     ctx.strokeStyle = path.color;
     drawStrokePath(ctx, path);
     ctx.restore();
-  });
+  }
+
+  state.lastRenderedStrokeIndex = totalPaths - 1;
 }
 
 function drawSmoothPath(ctx, points) {
