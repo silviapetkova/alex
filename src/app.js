@@ -62,7 +62,7 @@ const defaultSettings = {
   startupView: "library",
 };
 
-function makePage(title = "Notebook Page", template = "notebook", paper = "lined", elements = [], penPaths = [], habitChecks = {}, habitRows = defaultHabitRows, habitLayout = "week") {
+function makePage(title = "Notebook Page", template = "notebook", paper = "lined", elements = [], penPaths = [], habitChecks = {}, habitRows = defaultHabitRows, habitLayout = "week", moodChecks = {}, readingEntries = []) {
   return {
     id: `page-${Date.now()}-${Math.round(Math.random() * 100000)}`,
     title,
@@ -73,6 +73,8 @@ function makePage(title = "Notebook Page", template = "notebook", paper = "lined
     habitChecks: normalizeHabitChecks(habitChecks),
     habitRows: normalizeHabitRows(habitRows),
     habitLayout: normalizeHabitLayout(habitLayout),
+    moodChecks: normalizeMoodChecks(moodChecks),
+    readingEntries: normalizeReadingEntries(readingEntries),
     redoPaths: [],
     undoStack: [],
     redoStack: [],
@@ -117,6 +119,8 @@ let state = {
   habitChecks: {},
   habitRows: structuredClone(defaultHabitRows),
   habitLayout: "week",
+  moodChecks: {},
+  readingEntries: [],
   redoPaths: [],
   undoStack: [],
   redoStack: [],
@@ -176,6 +180,8 @@ function normalizeState() {
           habitChecks: normalizeHabitChecks(page.habitChecks),
           habitRows: normalizeHabitRows(page.habitRows),
           habitLayout: normalizeHabitLayout(page.habitLayout),
+          moodChecks: normalizeMoodChecks(page.moodChecks),
+          readingEntries: normalizeReadingEntries(page.readingEntries),
           redoPaths: structuredClone(page.redoPaths || []),
           undoStack: structuredClone(page.undoStack || []),
           redoStack: structuredClone(page.redoStack || []),
@@ -269,6 +275,22 @@ function habitDayLabels() {
   return habitLayouts[normalizeHabitLayout(state.habitLayout)];
 }
 
+function normalizeMoodChecks(checks) {
+  if (!checks || typeof checks !== "object" || Array.isArray(checks)) return {};
+  return Object.fromEntries(Object.entries(checks).filter(([key, value]) => /^m-\d+$/.test(key) && typeof value === "number" && value >= 0 && value <= 6));
+}
+
+function normalizeReadingEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries.map((entry) => ({
+    title: String(entry?.title || "").trim().slice(0, 100),
+    author: String(entry?.author || "").trim().slice(0, 100),
+    quote: String(entry?.quote || "").trim().slice(0, 300),
+    thoughts: String(entry?.thoughts || "").trim().slice(0, 500),
+    rating: Math.min(5, Math.max(0, Number(entry?.rating || 0))),
+  })).slice(0, 20);
+}
+
 function habitCheckKey(row, day) {
   return `h-${row}-${day}`;
 }
@@ -280,6 +302,15 @@ function defaultHabitChecked(row, day) {
 function isHabitChecked(row, day) {
   const key = habitCheckKey(row, day);
   return state.habitChecks?.[key] ?? defaultHabitChecked(row, day);
+}
+
+function moodCheckKey(day) {
+  return `m-${day}`;
+}
+
+function getMoodForDay(day) {
+  const key = moodCheckKey(day);
+  return state.moodChecks?.[key] ?? -1;
 }
 
 function currentJournal() {
@@ -300,6 +331,8 @@ function loadPageIntoState(page) {
   state.habitChecks = normalizeHabitChecks(page.habitChecks);
   state.habitRows = normalizeHabitRows(page.habitRows);
   state.habitLayout = normalizeHabitLayout(page.habitLayout);
+  state.moodChecks = normalizeMoodChecks(page.moodChecks);
+  state.readingEntries = normalizeReadingEntries(page.readingEntries);
   state.redoPaths = structuredClone(page.redoPaths || []);
   state.undoStack = structuredClone(page.undoStack || []);
   state.redoStack = structuredClone(page.redoStack || []);
@@ -316,6 +349,8 @@ function capturePageState() {
   page.habitChecks = normalizeHabitChecks(state.habitChecks);
   page.habitRows = normalizeHabitRows(state.habitRows);
   page.habitLayout = normalizeHabitLayout(state.habitLayout);
+  page.moodChecks = normalizeMoodChecks(state.moodChecks);
+  page.readingEntries = normalizeReadingEntries(state.readingEntries);
   page.redoPaths = structuredClone(state.redoPaths || []);
   page.undoStack = structuredClone(state.undoStack || []);
   page.redoStack = structuredClone(state.redoStack || []);
@@ -332,6 +367,8 @@ function pageSnapshot() {
     habitChecks: normalizeHabitChecks(state.habitChecks),
     habitRows: normalizeHabitRows(state.habitRows),
     habitLayout: normalizeHabitLayout(state.habitLayout),
+    moodChecks: normalizeMoodChecks(state.moodChecks),
+    readingEntries: normalizeReadingEntries(state.readingEntries),
     selectedId: state.selectedId,
   };
 }
@@ -345,6 +382,8 @@ function restoreSnapshot(snapshot) {
   state.habitChecks = normalizeHabitChecks(snapshot.habitChecks);
   state.habitRows = normalizeHabitRows(snapshot.habitRows);
   state.habitLayout = normalizeHabitLayout(snapshot.habitLayout);
+  state.moodChecks = normalizeMoodChecks(snapshot.moodChecks);
+  state.readingEntries = normalizeReadingEntries(snapshot.readingEntries);
   state.selectedId = snapshot.selectedId || null;
   state.redoPaths = [];
 }
@@ -1000,7 +1039,10 @@ function trackerPage() {
     <h2>habit tracker</h2>
     <div class="habit-scroll"><div class="habit-grid habit-${state.habitLayout}"><div></div>${days.map((day) => `<b>${day}</b>`).join("")}${rows.map((habit, row) => `<span class="habit-row-label"><button class="habit-name" data-habit-name="${row}" aria-label="Rename ${escapeHtml(habit)}">${escapeHtml(habit)}</button><button class="habit-remove" data-habit-remove="${row}" aria-label="Remove ${escapeHtml(habit)}">-</button></span>${days.map((day, index) => `<button class="habit-check ${isHabitChecked(row, index) ? "filled" : ""}" data-habit-row="${row}" data-habit-day="${index}" aria-pressed="${isHabitChecked(row, index)}" aria-label="${escapeHtml(habit)} ${day}"></button>`).join("")}`).join("")}</div></div>
     <h2>mood tracker</h2>
-    <div class="moods">${["&#9786;", "&#9787;", "-", "&#9675;", "&#9825;", "&#9685;", "&#9733;"].map((mood, index) => `<span>${mood}<small>${["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][index]}</small></span>`).join("")}</div>
+    <div class="moods">${["&#9786;", "&#9787;", "-", "&#9675;", "&#9825;", "&#9685;", "&#9733;"].map((emoji, moodIndex) => {
+      const dayLabel = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][moodIndex];
+      return `<div class="mood-day"><button class="mood-button ${getMoodForDay(moodIndex) === moodIndex ? "selected" : ""}" data-mood-day="${moodIndex}" data-mood-value="${moodIndex}" aria-pressed="${getMoodForDay(moodIndex) === moodIndex}" aria-label="Mood ${moodIndex} on ${dayLabel}">${emoji}</button><small>${dayLabel}</small></div>`;
+    }).join("")}</div>
     <div class="notes-box"><div class="tape-label small">notes</div></div>
   `;
 }
@@ -1018,7 +1060,22 @@ function habitPage(title) {
 }
 
 function readingPage() {
-  return `<h1>Reading Log</h1><div class="reading-lines">${["Book", "Author", "Favorite quote", "Thoughts", "Rating"].map((label) => `<p><b>${label}</b></p>`).join("")}</div>`;
+  const entries = normalizeReadingEntries(state.readingEntries);
+  return `<h1>Reading Log</h1>
+    <div class="reading-form">
+      <div class="reading-fields">
+        <input class="reading-input" data-reading-field="title" placeholder="Book title" value="${escapeHtml(entries[0]?.title || "")}" maxlength="100" />
+        <input class="reading-input" data-reading-field="author" placeholder="Author" value="${escapeHtml(entries[0]?.author || "")}" maxlength="100" />
+        <textarea class="reading-input reading-textarea" data-reading-field="quote" placeholder="Favorite quote" maxlength="300">${escapeHtml(entries[0]?.quote || "")}</textarea>
+        <textarea class="reading-input reading-textarea" data-reading-field="thoughts" placeholder="Thoughts & notes" maxlength="500">${escapeHtml(entries[0]?.thoughts || "")}</textarea>
+        <div class="reading-rating">
+          <label>Rating:</label>
+          <div class="rating-buttons">
+            ${[1,2,3,4,5].map((star) => `<button class="rating-star ${entries[0]?.rating >= star ? "filled" : ""}" data-rating="${star}" aria-pressed="${entries[0]?.rating >= star}">★</button>`).join("")}
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function blankPage(title) {
@@ -1131,6 +1188,18 @@ function bind() {
 
   document.querySelectorAll("[data-habit-layout]").forEach((button) => {
     button.addEventListener("click", () => setHabitLayout(button.dataset.habitLayout));
+  });
+
+  document.querySelectorAll("[data-mood-day]").forEach((button) => {
+    button.addEventListener("click", () => toggleMoodDay(button.dataset.moodDay, button.dataset.moodValue));
+  });
+
+  document.querySelectorAll("[data-reading-field]").forEach((input) => {
+    input.addEventListener("input", () => updateReadingEntry(input.dataset.readingField, input.value));
+  });
+
+  document.querySelectorAll("[data-rating]").forEach((button) => {
+    button.addEventListener("click", () => setReadingRating(button.dataset.rating));
   });
 
   document.querySelectorAll("[data-color]").forEach((button) => {
@@ -1390,6 +1459,41 @@ function setHabitLayout(layout) {
   if (nextLayout === state.habitLayout) return;
   pushHistory();
   state.habitLayout = nextLayout;
+  render();
+  persist();
+}
+
+function toggleMoodDay(dayValue, moodValue) {
+  const day = Number(dayValue);
+  const mood = Number(moodValue);
+  if (!Number.isInteger(day) || !Number.isInteger(mood)) return;
+  if (day < 0 || day >= 7 || mood < 0 || mood > 6) return;
+  pushHistory();
+  state.moodChecks = normalizeMoodChecks(state.moodChecks);
+  const key = moodCheckKey(day);
+  state.moodChecks[key] = getMoodForDay(day) === mood ? -1 : mood;
+  render();
+  persist();
+}
+
+function updateReadingEntry(field, value) {
+  const entries = normalizeReadingEntries(state.readingEntries);
+  if (!entries[0]) entries[0] = { title: "", author: "", quote: "", thoughts: "", rating: 0 };
+  if (field === "title") entries[0].title = String(value).trim().slice(0, 100);
+  else if (field === "author") entries[0].author = String(value).trim().slice(0, 100);
+  else if (field === "quote") entries[0].quote = String(value).trim().slice(0, 300);
+  else if (field === "thoughts") entries[0].thoughts = String(value).trim().slice(0, 500);
+  state.readingEntries = entries;
+  persist();
+}
+
+function setReadingRating(ratingValue) {
+  const rating = Number(ratingValue);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;
+  const entries = normalizeReadingEntries(state.readingEntries);
+  if (!entries[0]) entries[0] = { title: "", author: "", quote: "", thoughts: "", rating: 0 };
+  entries[0].rating = entries[0].rating === rating ? 0 : rating;
+  state.readingEntries = entries;
   render();
   persist();
 }
@@ -2035,7 +2139,7 @@ function duplicatePage() {
   capturePageState();
   const journal = currentJournal();
   const page = currentPage();
-  const copy = makePage(`${page.title} Copy`, page.template, page.paper, page.elements, page.penPaths, page.habitChecks, page.habitRows, page.habitLayout);
+  const copy = makePage(`${page.title} Copy`, page.template, page.paper, page.elements, page.penPaths, page.habitChecks, page.habitRows, page.habitLayout, page.moodChecks, page.readingEntries);
   const index = journal.pages.findIndex((entry) => entry.id === page.id);
   journal.pages.splice(index + 1, 0, copy);
   loadPageIntoState(copy);
@@ -2346,6 +2450,8 @@ function importNotebook(event) {
           habitChecks: normalizeHabitChecks(page.habitChecks),
           habitRows: normalizeHabitRows(page.habitRows),
           habitLayout: normalizeHabitLayout(page.habitLayout),
+          moodChecks: normalizeMoodChecks(page.moodChecks),
+          readingEntries: normalizeReadingEntries(page.readingEntries),
           redoPaths: [],
           updatedAt: page.updatedAt || new Date().toISOString(),
         })),

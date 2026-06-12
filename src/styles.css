@@ -1437,6 +1437,132 @@ button {
 }
 
 .daily-grid p,
+.moods {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 0 18px;
+}
+
+.mood-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mood-button {
+  font-size: 28px;
+  background: none;
+  border: 2px solid #d9d5d0;
+  border-radius: 12px;
+  padding: 4px 6px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.mood-button:hover {
+  border-color: #b9b1a9;
+  transform: scale(1.05);
+}
+
+.mood-button.selected {
+  background: var(--pink);
+  border-color: var(--pink-deep);
+  box-shadow: 0 2px 8px rgba(157, 71, 85, 0.2);
+}
+
+.reading-form {
+  padding: 18px;
+}
+
+.reading-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reading-input {
+  font-family: "Comic Sans MS", "Segoe Print", cursive;
+  font-size: 16px;
+  border: 1px solid #d9d5d0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 253, 247, 0.6);
+  color: #3a3530;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.reading-input:focus {
+  outline: 2px solid var(--pink);
+  outline-offset: 0;
+  background: rgba(255, 253, 247, 1);
+}
+
+.reading-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.reading-rating {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reading-rating label {
+  font-family: "Comic Sans MS", "Segoe Print", cursive;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.rating-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.rating-star {
+  font-size: 24px;
+  background: none;
+  border: 1px solid #d9d5d0;
+  border-radius: 6px;
+  padding: 2px 6px;
+  cursor: pointer;
+  color: #9d4755;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+  min-height: 36px;
+  min-width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+}
+
+.rating-star:hover {
+  background: rgba(253, 198, 205, 0.3);
+  border-color: var(--pink);
+}
+
+.rating-star.filled {
+  background: var(--pink);
+  border-color: var(--pink-deep);
+  color: #6d3040;
+}
+
 .reading-lines,
 .budget-table {
   font-family: "Comic Sans MS", "Segoe Print", cursive;
@@ -2774,7 +2900,31 @@ button {
   }
 
   .moods {
-    gap: 4px;
+    gap: 6px;
+  }
+
+  .mood-button {
+    font-size: 24px;
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  .mood-day small {
+    font-size: 11px;
+  }
+
+  .reading-input {
+    font-size: 14px;
+  }
+
+  .reading-textarea {
+    min-height: 60px;
+  }
+
+  .rating-star {
+    font-size: 20px;
+    min-height: 32px;
+    min-width: 32px;
   }
 
   .canvas-text {

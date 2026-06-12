@@ -129,6 +129,42 @@ def test_alex_notebook_clickthrough(app_url):
         page.locator('.asset-tabs [data-inspector-tab="Paper"]').click()
         page.locator('[data-paper="dot"]').click()
         assert "paper-dot" in page.locator("#book-spread").get_attribute("class")
+        page.locator('.template-list [data-template="habit"]').click()
+        assert page.locator(".habit-check").count() == 35
+        first_habit_check = page.locator(".habit-check").first
+        assert first_habit_check.get_attribute("aria-pressed") == "false"
+        first_habit_check.click()
+        assert first_habit_check.get_attribute("aria-pressed") == "true"
+        page.wait_for_function(
+            """(key) => {
+                const stored = JSON.parse(window.localStorage.getItem(key));
+                const journal = stored.journals.find((entry) => entry.id === stored.activeJournal);
+                const page = journal.pages.find((entry) => entry.id === stored.activePageId);
+                return page.habitChecks && page.habitChecks["h-0-0"] === true;
+            }""",
+            arg=STORAGE_KEY,
+            timeout=2000,
+        )
+        page.once("dialog", lambda dialog: dialog.accept("Stretch"))
+        page.locator('[data-habit-name="0"]').click()
+        assert page.locator('[data-habit-name="0"]').inner_text() == "Stretch"
+        page.once("dialog", lambda dialog: dialog.accept("Sleep"))
+        page.locator('[data-action="add-habit-row"]').click()
+        assert page.locator("[data-habit-name]").count() == 6
+        page.locator('[data-habit-layout="month"]').click()
+        assert page.locator(".habit-check").count() == 186
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.locator('[data-habit-remove="5"]').click()
+        assert page.locator("[data-habit-name]").count() == 5
+        assert page.evaluate(
+            """(key) => {
+                const stored = JSON.parse(window.localStorage.getItem(key));
+                const journal = stored.journals.find((entry) => entry.id === stored.activeJournal);
+                const page = journal.pages.find((entry) => entry.id === stored.activePageId);
+                return page.habitRows[0] === "Stretch" && page.habitLayout === "month";
+            }""",
+            STORAGE_KEY,
+        )
 
         page.locator('[data-cover="mint"]').click()
         assert "selected" in page.locator('[data-cover="mint"]').get_attribute("class")
