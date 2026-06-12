@@ -1,5 +1,5 @@
 const STORAGE_KEY = "alex-journal-prototype";
-const APP_VERSION = "v3";
+const APP_VERSION = "v4";
 
 const templates = [
   { title: "Notebook Pages", template: "notebook", icon: "&#9636;" },
@@ -75,6 +75,7 @@ const railSections = [
 ];
 const penPresets = [
   { id: "gel", label: "Gel Pen", width: 4, alpha: 1, composite: "source-over" },
+  { id: "fountain", label: "Fountain Pen", width: 3.2, alpha: 0.9, composite: "source-over" },
   { id: "pencil", label: "Pencil", width: 3, alpha: 0.62, composite: "source-over" },
   { id: "marker", label: "Marker", width: 8, alpha: 0.82, composite: "source-over" },
   { id: "highlighter", label: "Highlighter", width: 14, alpha: 0.34, composite: "source-over" },
@@ -2502,6 +2503,27 @@ function redoInk() {
   restoreSnapshot(snapshot);
 }
 
+function placeImageFile(file) {
+  if (!file || !file.type?.startsWith("image/")) return false;
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    addElement("image", reader.result);
+    render();
+    persist();
+    showNotice("Image added to the page");
+  });
+  reader.readAsDataURL(file);
+  return true;
+}
+
+function handlePageDrop(event) {
+  const file = Array.from(event.dataTransfer?.files || []).find((entry) => entry.type?.startsWith("image/"));
+  if (!file) return;
+  event.preventDefault();
+  state.activeTool = "select";
+  placeImageFile(file);
+}
+
 function importImage(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -2552,7 +2574,7 @@ function exportNotebook() {
     app: "Alex",
     version: 1,
     exportedAt: new Date().toISOString(),
-    notebook: journal,
+    notebook: journalsForStorage().find((entry) => entry.id === journal.id) || journal,
   }, null, 2);
   const blob = new Blob([data], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -3285,6 +3307,10 @@ function setupCanvas() {
   book?.addEventListener("pointermove", handlePinchMove);
   book?.addEventListener("pointerup", handlePinchEnd);
   book?.addEventListener("pointercancel", handlePinchEnd);
+  book?.addEventListener("dragover", (event) => {
+    if (Array.from(event.dataTransfer?.types || []).includes("Files")) event.preventDefault();
+  });
+  book?.addEventListener("drop", handlePageDrop);
   paintPaths();
 }
 
@@ -3673,6 +3699,13 @@ function checkStorageQuota() {
   }).catch(() => {});
 }
 
+function journalsForStorage() {
+  return currentJournals().map((journal) => ({
+    ...journal,
+    pages: (journal.pages || []).map((page) => ({ ...page, undoStack: [], redoStack: [], redoPaths: [] })),
+  }));
+}
+
 function persist() {
   capturePageState();
   const note = document.getElementById("save-note");
@@ -3686,7 +3719,7 @@ function persist() {
       activeTool: state.activeTool,
       activeJournal: state.activeJournal,
       activePageId: state.activePageId,
-      journals: currentJournals(),
+      journals: journalsForStorage(),
       activeColor: state.activeColor,
       penPreset: state.penPreset,
       penWidth: state.penWidth,

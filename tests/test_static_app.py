@@ -19,8 +19,7 @@ def test_app_shell_references_required_assets():
     assert "./src/styles.css" in html
     assert "./src/app.js" in html
     assert "./manifest.webmanifest" in html
-    assert "getRegistrations" in html
-    assert "caches.delete" in html
+    assert 'serviceWorker.register("./sw.js")' in html
 
 
 def test_manifest_is_installable_app_metadata():
@@ -121,6 +120,9 @@ def test_notebook_core_features_are_wired():
         "function saveCustomTemplate",
         "function applyCustomTemplate",
         "function removeCustomTemplate",
+        "function journalsForStorage",
+        "function placeImageFile",
+        "function handlePageDrop",
         "function touchListDistance",
         "function bindLayerPinchResize",
         "function touchesHitElement",
@@ -244,6 +246,7 @@ def test_handwriting_features_are_wired():
     for feature in [
         "const penPresets",
         "Gel Pen",
+        "Fountain Pen",
         "Pencil",
         "Marker",
         "Highlighter",

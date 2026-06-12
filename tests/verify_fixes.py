@@ -117,6 +117,49 @@ def run():
         page.click("[data-action='undo']")
         page.wait_for_timeout(300)
 
+        # --- Storage diet: undo/redo stacks are not persisted ---
+        stored = active_page(page)
+        if stored.get("undoStack") or stored.get("redoStack"):
+            failures.append(
+                f"undo/redo stacks leaked into localStorage "
+                f"({len(stored.get('undoStack', []))} undo snapshots)"
+            )
+
+        # --- Fountain pen preset selectable ---
+        page.click("[data-inspector-tab='Pens']")
+        page.click("[data-preset='fountain']")
+        page.wait_for_timeout(200)
+        preset_class = page.get_attribute("[data-preset='fountain']", "class") or ""
+        if "selected" not in preset_class:
+            failures.append("fountain pen preset did not select")
+
+        # --- Drag-and-drop an image file onto the page ---
+        images_before = page.locator(".canvas-image").count()
+        page.evaluate(
+            """() => {
+              const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+              const raw = atob(b64);
+              const bytes = new Uint8Array(raw.length);
+              for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+              const dt = new DataTransfer();
+              dt.items.add(new File([bytes], 'drop.png', { type: 'image/png' }));
+              document.getElementById('book-spread').dispatchEvent(
+                new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })
+              );
+            }"""
+        )
+        page.wait_for_timeout(500)
+        images_after = page.locator(".canvas-image").count()
+        if images_after != images_before + 1:
+            failures.append(f"drag-drop image failed: {images_before} -> {images_after}")
+
+        # --- Service worker registers (PWA install/offline path) ---
+        sw_state = page.evaluate(
+            "() => navigator.serviceWorker.getRegistration().then(r => r ? 'registered' : 'none')"
+        )
+        if sw_state != "registered":
+            failures.append(f"service worker not registered: {sw_state}")
+
         # --- Reading log: type, rate, add a second book, remove it ---
         page.click("[data-template='reading']")
         title_input = "[data-reading-field='title'][data-reading-index='0']"
