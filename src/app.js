@@ -49,6 +49,11 @@ const stickerPacks = [
   ] },
 ];
 const stickers = stickerPacks.flatMap((pack) => pack.items.map((item) => item.glyph));
+const shapes = [
+  { id: "rect", label: "Square" },
+  { id: "circle", label: "Circle" },
+  { id: "line", label: "Line" },
+];
 const tapes = ["gingham", "blue-grid", "leaf", "dots", "linen", "ink-dots"];
 const colors = ["#202225", "#4d5256", "#e96d7b", "#c98255", "#d8aa2f", "#3c9b70", "#4f90b5", "#8a64b0", "#ffb7b9", "#f8d66d", "#9edbb8", "#a9d1e8"];
 const paperStyles = [
@@ -162,6 +167,7 @@ let state = {
   templateData: {},
   activeStickerPack: "classic",
   customTemplates: [],
+  favoriteColors: [],
   redoPaths: [],
   undoStack: [],
   redoStack: [],
@@ -286,6 +292,9 @@ function normalizeState() {
   if (!state.redoStack) state.redoStack = [];
   state.customTemplates = normalizeCustomTemplates(state.customTemplates);
   if (!stickerPacks.some((pack) => pack.id === state.activeStickerPack)) state.activeStickerPack = "classic";
+  state.favoriteColors = Array.isArray(state.favoriteColors)
+    ? [...new Set(state.favoriteColors.filter((color) => /^#[0-9a-fA-F]{3,8}$/.test(color)))].slice(0, 10)
+    : [];
 }
 
 function currentJournals() {
@@ -297,6 +306,7 @@ function normalizeElements(elements) {
     rotation: 0,
     ...element,
     size: element.size || (element.type === "text" ? 18 : 38),
+    locked: Boolean(element.locked),
   }));
 }
 
@@ -914,6 +924,7 @@ function inspectorTabContent(tab, journal, pageData, visibleStickers) {
       ${state.query.trim() ? "" : `<div class="sticker-pack-tabs">${stickerPacks.map((pack) => `<button class="${(state.activeStickerPack || "classic") === pack.id ? "active" : ""}" data-sticker-pack="${pack.id}">${pack.label}</button>`).join("")}</div>`}
       ${panelSection("Margin Marks", stickerGrid(visibleStickers))}
       ${panelSection("Washi Tape", `<div class="tape-grid">${tapes.map((tape) => `<button class="${tape}" data-tape="${tape}" aria-label="${tape} tape"></button>`).join("")}</div>`)}
+      ${panelSection("Shapes", `<div class="shape-grid">${shapes.map((shape) => `<button class="shape-pick shape-pick-${shape.id}" data-shape="${shape.id}" aria-label="${shape.label}"><span></span>${shape.label}</button>`).join("")}</div>`)}
     `;
   }
 
@@ -955,7 +966,7 @@ function inspectorTabContent(tab, journal, pageData, visibleStickers) {
       <label class="range-row"><span>Stroke</span><input id="pen-width" type="range" min="1" max="18" value="${state.penWidth}" /></label>
     `)}
     ${panelSection("Ink Alignment", inkAlignmentControls())}
-    ${panelSection("Ink Colors", `<div class="color-grid">${colors.map((color) => `<button class="${state.activeColor === color ? "selected" : ""}" style="background:${color}" data-color="${color}"></button>`).join("")}</div>`)}
+    ${panelSection("Ink Colors", `<div class="color-grid">${colors.map((color) => `<button class="${state.activeColor === color ? "selected" : ""}" style="background:${color}" data-color="${color}"></button>`).join("")}</div>${favoriteColorsHtml()}`)}
     ${panelSection("Selection", selectionControls())}
   `;
 }
@@ -1024,6 +1035,21 @@ function pageList(journal, pageData) {
   `;
 }
 
+function favoriteColorsHtml() {
+  const favorites = state.favoriteColors || [];
+  const alreadySaved = favorites.includes(state.activeColor);
+  return `
+    <div class="favorites-row">
+      <div class="favorites-swatches">
+        ${favorites.length
+          ? favorites.map((color) => `<button class="favorite-swatch ${state.activeColor === color ? "selected" : ""}" style="background:${color}" data-favorite-color="${color}" aria-label="Favorite color ${color}"><span class="favorite-remove" data-remove-favorite="${color}" role="button" aria-label="Remove favorite ${color}">&times;</span></button>`).join("")
+          : `<span class="favorites-empty">No favorites yet</span>`}
+      </div>
+      <button class="favorite-add" data-action="save-favorite-color" ${alreadySaved ? "disabled" : ""} aria-label="Save current color as favorite">&#9733; Save</button>
+    </div>
+  `;
+}
+
 function selectionControls() {
   const selected = state.elements.find((element) => element.id === state.selectedId);
   if (!selected) {
@@ -1033,20 +1059,22 @@ function selectionControls() {
   const min = selected.type === "text" ? 12 : 20;
   const max = selected.type === "image" || selected.type === "pdf" ? 120 : 72;
   const canRotate = selected.type !== "text";
+  const locked = Boolean(selected.locked);
   return `
-    <label class="range-row"><span>${label}</span><input id="element-size" type="range" min="${min}" max="${max}" value="${selected.size}" /></label>
-    ${canRotate ? `<label class="range-row"><span>Rotate</span><input id="element-rotation" type="range" min="-180" max="180" value="${selected.rotation || 0}" /></label>` : ""}
+    <label class="range-row"><span>${label}</span><input id="element-size" type="range" min="${min}" max="${max}" value="${selected.size}" ${locked ? "disabled" : ""} /></label>
+    ${canRotate ? `<label class="range-row"><span>Rotate</span><input id="element-rotation" type="range" min="-180" max="180" value="${selected.rotation || 0}" ${locked ? "disabled" : ""} /></label>` : ""}
+    <button class="lock-toggle ${locked ? "locked" : ""}" data-action="toggle-lock-element" aria-pressed="${locked}">${locked ? "&#128274; Locked - tap to unlock" : "&#128275; Lock position"}</button>
     <div class="selection-actions">
-      <button data-action="nudge-left">${icon("left")}</button>
-      <button data-action="nudge-up">Up</button>
-      <button data-action="nudge-down">Down</button>
-      <button data-action="nudge-right">${icon("right")}</button>
+      <button data-action="nudge-left" ${locked ? "disabled" : ""}>${icon("left")}</button>
+      <button data-action="nudge-up" ${locked ? "disabled" : ""}>Up</button>
+      <button data-action="nudge-down" ${locked ? "disabled" : ""}>Down</button>
+      <button data-action="nudge-right" ${locked ? "disabled" : ""}>${icon("right")}</button>
       <button data-action="duplicate-element">Duplicate</button>
-      <button data-action="bring-forward">Forward</button>
-      <button data-action="send-backward">Backward</button>
-      <button data-action="bring-front">Front</button>
-      <button data-action="send-back">Back</button>
-      <button data-action="delete-element">Delete</button>
+      <button data-action="bring-forward" ${locked ? "disabled" : ""}>Forward</button>
+      <button data-action="send-backward" ${locked ? "disabled" : ""}>Backward</button>
+      <button data-action="bring-front" ${locked ? "disabled" : ""}>Front</button>
+      <button data-action="send-back" ${locked ? "disabled" : ""}>Back</button>
+      <button data-action="delete-element" ${locked ? "disabled" : ""}>Delete</button>
     </div>
   `;
 }
@@ -1268,6 +1296,21 @@ function bindDelegatedEvents() {
     if (customTemplate) return applyCustomTemplate(customTemplate.dataset.customTemplate);
     const customTemplateRemove = event.target.closest?.("[data-custom-template-remove]");
     if (customTemplateRemove) return removeCustomTemplate(customTemplateRemove.dataset.customTemplateRemove);
+    const removeFavorite = event.target.closest?.("[data-remove-favorite]");
+    if (removeFavorite) {
+      event.stopPropagation();
+      state.favoriteColors = state.favoriteColors.filter((color) => color !== removeFavorite.dataset.removeFavorite);
+      render();
+      persist();
+      return;
+    }
+    const favoriteColor = event.target.closest?.("[data-favorite-color]");
+    if (favoriteColor) {
+      state.activeColor = favoriteColor.dataset.favoriteColor;
+      render();
+      persist();
+      return;
+    }
   });
 
   document.addEventListener("input", (event) => {
@@ -1368,6 +1411,17 @@ function bind() {
       state.activeTool = "select";
       addElement("tape", button.dataset.tape);
       state.selectedId = null;
+      render();
+      persist();
+    });
+  });
+
+  document.querySelectorAll("[data-shape]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeTool = "select";
+      const id = addElement("shape", button.dataset.shape);
+      const created = state.elements.find((element) => element.id === id);
+      if (created) created.color = state.activeColor;
       render();
       persist();
     });
@@ -1872,6 +1926,25 @@ function handleAction(action, event) {
     pushHistory();
     nudgeSelected(0, 1.5);
   }
+  if (action === "save-favorite-color") {
+    if (!state.favoriteColors.includes(state.activeColor)) {
+      state.favoriteColors = [...state.favoriteColors, state.activeColor].slice(-10);
+      render();
+      persist();
+      showNotice("Color saved to favorites");
+    }
+    return;
+  }
+  if (action === "toggle-lock-element") {
+    const selected = state.elements.find((element) => element.id === state.selectedId);
+    if (selected) {
+      pushHistory();
+      selected.locked = !selected.locked;
+      render();
+      persist();
+    }
+    return;
+  }
   if (action === "delete-element") {
     pushHistory();
     deleteSelectedElement();
@@ -2231,6 +2304,10 @@ function elementSizeStyle(element) {
   }
   if (element.type === "tape") {
     return `width:${size * 4}px;height:${Math.max(24, size * 0.8)}px`;
+  }
+  if (element.type === "shape") {
+    if (element.value === "line") return `width:${size * 3}px;height:${Math.max(3, size * 0.12)}px`;
+    return `width:${size * 1.6}px;height:${size * 1.6}px`;
   }
   return "";
 }
@@ -3013,6 +3090,11 @@ function drawElements() {
     if (element.type === "tape") {
       return `<button class="canvas-tape tape-${escapeHtml(element.value)} ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;${sizeStyle};transform:${transform}" aria-label="Washi tape"></button>`;
     }
+    if (element.type === "shape") {
+      const color = element.color || "#e96d7b";
+      const fill = element.value === "line" ? `background:${color}` : `background:${color}`;
+      return `<button class="canvas-shape shape-${escapeHtml(element.value)} ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;${sizeStyle};transform:${transform};${fill}" aria-label="${escapeHtml(element.value)} shape"></button>`;
+    }
     return `<button class="canvas-sticker ${state.selectedId === element.id ? "selected" : ""}" data-element="${element.id}" style="left:${element.x}%;top:${element.y}%;${sizeStyle};transform:${transform}">${element.value}</button>`;
   }).join("");
   drawSelectionHandles(layer);
@@ -3025,6 +3107,8 @@ function drawElements() {
     let pinchResize = null;
     elementNode.addEventListener("touchstart", (event) => {
       if (event.touches.length !== 2) return;
+      const lockedItem = state.elements.find((entry) => entry.id === id);
+      if (lockedItem?.locked) return;
       event.preventDefault();
       event.stopPropagation();
       pushHistory();
@@ -3064,9 +3148,13 @@ function drawElements() {
         persist();
         return;
       }
+      const item = state.elements.find((entry) => entry.id === id);
+      if (item?.locked) {
+        persist();
+        return;
+      }
       event.preventDefault();
       elementNode.blur?.();
-      const item = state.elements.find((entry) => entry.id === id);
       const book = document.getElementById("book-spread");
       const rect = book.getBoundingClientRect();
       const local = localPoint(event, book, rect, false);
@@ -3161,7 +3249,7 @@ function drawSelectionHandles(layer) {
   if (isDrawingTool()) return;
   const selected = state.elements.find((element) => element.id === state.selectedId);
   const book = document.getElementById("book-spread");
-  if (!selected || !book) return;
+  if (!selected || selected.locked || !book) return;
   const visual = elementVisualSize(selected);
   const halfX = ((visual.width / 2) / book.clientWidth) * 100;
   const halfY = ((visual.height / 2) / book.clientHeight) * 100;
@@ -3731,6 +3819,7 @@ function persist() {
       activeInspectorTab: state.activeInspectorTab,
       settings: state.settings,
       customTemplates: normalizeCustomTemplates(state.customTemplates),
+      favoriteColors: state.favoriteColors,
       onboardingComplete: state.onboardingComplete,
       drawOffsetX: state.drawOffsetX,
       drawOffsetY: state.drawOffsetY,

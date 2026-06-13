@@ -160,6 +160,44 @@ def run():
         if sw_state != "registered":
             failures.append(f"service worker not registered: {sw_state}")
 
+        # --- Shapes: place a shape, it becomes a movable element ---
+        page.click("[data-inspector-tab='Marks']")
+        page.wait_for_selector("[data-shape='circle']")
+        shapes_before = page.locator(".canvas-shape").count()
+        page.click("[data-shape='circle']")
+        page.wait_for_timeout(300)
+        shapes_after = page.locator(".canvas-shape").count()
+        if shapes_after != shapes_before + 1:
+            failures.append(f"shape placement failed: {shapes_before} -> {shapes_after}")
+
+        # --- Lock: locked element exposes aria-pressed and disables size ---
+        page.click("[data-inspector-tab='Pens']")
+        page.wait_for_selector("[data-action='toggle-lock-element']")
+        page.click("[data-action='toggle-lock-element']")
+        page.wait_for_timeout(300)
+        lock_pressed = page.get_attribute("[data-action='toggle-lock-element']", "aria-pressed")
+        if lock_pressed != "true":
+            failures.append(f"lock toggle did not engage: aria-pressed={lock_pressed}")
+        size_disabled = page.get_attribute("#element-size", "disabled")
+        if size_disabled is None:
+            failures.append("size slider not disabled while locked")
+        locked_in_storage = [e for e in active_page(page).get("elements", []) if e.get("locked")]
+        if not locked_in_storage:
+            failures.append("locked flag not persisted")
+        page.click("[data-action='toggle-lock-element']")  # unlock for cleanliness
+        page.wait_for_timeout(200)
+
+        # --- Favorites: save current color, appears as a swatch, persists ---
+        page.click("[data-color='#3c9b70']")
+        page.wait_for_timeout(150)
+        page.click("[data-action='save-favorite-color']")
+        page.wait_for_timeout(400)
+        swatches = page.locator(".favorite-swatch").count()
+        if swatches < 1:
+            failures.append("favorite color swatch not shown after save")
+        if "#3c9b70" not in storage(page).get("favoriteColors", []):
+            failures.append(f"favorite color not persisted: {storage(page).get('favoriteColors')}")
+
         # --- Reading log: type, rate, add a second book, remove it ---
         page.click("[data-template='reading']")
         title_input = "[data-reading-field='title'][data-reading-index='0']"

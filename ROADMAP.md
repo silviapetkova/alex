@@ -22,12 +22,12 @@ Alex is a soft, cozy personal notebook and creative planner app. The long-term t
 
 ## Phase 3: Creative Journal Tools
 
-- Add sticker packs and decorative marks.
-- Add washi tape, labels, frames, shapes, and photo cutouts.
-- Add layers: send forward/back, lock, and group.
-- Add resize and rotate handles for stickers, text, and images.
-- Add color palettes and saved favorite tools.
-- Add drag-and-drop image placement.
+- Add sticker packs and decorative marks. **Done** (5 packs, 60 marks, name search).
+- Add washi tape, labels, frames, shapes, and photo cutouts. Washi tape **done**; shapes (square/circle/line in the active color) **done**; labels/frames/photo cutouts still open.
+- Add layers: send forward/back, lock, and group. Forward/back **done**; element **lock done** (blocks drag/resize/rotate); grouping still open.
+- Add resize and rotate handles for stickers, text, and images. **Done.**
+- Add color palettes and saved favorite tools. **Done**: saved favorite colors (quick reuse, removable).
+- Add drag-and-drop image placement. **Done.**
 
 ## Phase 4: Templates & Planning
 
