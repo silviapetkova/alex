@@ -140,6 +140,9 @@ Phase 4 mostly complete. Next: performance monitoring, mobile optimization, and 
 - Expanded Margin Marks from 12 to 60 stickers in five packs (Classic, Nature, Treats, Study, Celebrate) with name-based search.
 - Added a Monthly Plan template: real current-month calendar with weekday-aligned grid, highlighted today, and a saved note per day.
 - Added custom templates: save the current page (template, paper, placed marks) as a named reusable template, create new pages from it, or delete it. Page Types counts now show real per-template page counts instead of decorative numbers.
+- Added element lock, saved favorite colors, and placeable shapes (square/circle/line).
+- Published the app as a live PWA on GitHub Pages (silviapetkova/alex) with an auto-deploy workflow.
+- Made the Daily, Weekly, and Monthly planners genuinely date-aware: each has Previous / Next / Today (or This week / This month) navigation, and every date's content is stored separately, so you can page back to earlier days and forward to plan ahead. Legacy single-entry data is migrated to the current date on load.
 - Re-enabled the service worker (cache v4) so Alex installs as a PWA and the full app shell loads offline - verified with an offline reload. This completes the first Phase 7 step.
 - Stopped persisting undo/redo history (60 full-page snapshots per page) into localStorage and JSON backups - storage use drops dramatically on ink-heavy notebooks; undo still works within a session.
 - Added the Fountain Pen preset, completing the Phase 2 pen list.

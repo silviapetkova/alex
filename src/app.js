@@ -347,30 +347,46 @@ function normalizeReadingEntries(entries) {
 
 function normalizeTemplateData(data) {
   const source = data && typeof data === "object" && !Array.isArray(data) ? data : {};
-  const daily = source.daily && typeof source.daily === "object" ? source.daily : {};
-  const topThree = Array.isArray(daily.topThree) ? daily.topThree : [];
-  const schedule = Array.isArray(daily.schedule) ? daily.schedule : [];
-  const weekly = source.weekly && typeof source.weekly === "object" ? source.weekly : {};
-  return {
-    daily: {
-      topThree: Array.from({ length: 3 }, (_, index) => ({
-        done: Boolean(topThree[index]?.done),
-        text: String(topThree[index]?.text || "").slice(0, 80),
-      })),
-      schedule: Array.from({ length: 4 }, (_, index) => String(schedule[index] || "").slice(0, 80)),
-      joys: String(daily.joys || "").slice(0, 200),
-    },
-    weekly: Object.fromEntries(Array.from({ length: 7 }, (_, day) => {
-      const slots = Array.isArray(weekly[day]) ? weekly[day] : [];
-      return [day, Array.from({ length: 2 }, (_, slot) => String(slots[slot] || "").slice(0, 80))];
-    })),
-    monthly: Object.fromEntries(
-      Object.entries(source.monthly && typeof source.monthly === "object" && !Array.isArray(source.monthly) ? source.monthly : {})
-        .filter(([key]) => /^([1-9]|[12]\d|3[01])$/.test(key))
-        .map(([key, value]) => [key, String(value || "").slice(0, 40)])
-        .filter(([, value]) => value)
-    ),
+  const today = new Date();
+
+  const dailyRaw = source.daily && typeof source.daily === "object" && !Array.isArray(source.daily) ? source.daily : {};
+  const daily = {};
+  if ("topThree" in dailyRaw || "schedule" in dailyRaw || "joys" in dailyRaw) {
+    daily[isoDate(today)] = normalizeDailyEntry(dailyRaw); // migrate legacy single entry
+  } else {
+    for (const [key, value] of Object.entries(dailyRaw)) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(key)) daily[key] = normalizeDailyEntry(value);
+    }
+  }
+
+  const weeklyRaw = source.weekly && typeof source.weekly === "object" && !Array.isArray(source.weekly) ? source.weekly : {};
+  const weekly = {};
+  if (Object.keys(weeklyRaw).some((key) => /^[0-6]$/.test(key))) {
+    weekly[weekStartIso(today)] = normalizeWeeklyEntry(weeklyRaw); // migrate legacy single week
+  } else {
+    for (const [key, value] of Object.entries(weeklyRaw)) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(key)) weekly[key] = normalizeWeeklyEntry(value);
+    }
+  }
+
+  const monthlyRaw = source.monthly && typeof source.monthly === "object" && !Array.isArray(source.monthly) ? source.monthly : {};
+  const monthly = {};
+  if (Object.keys(monthlyRaw).some((key) => /^([1-9]|[12]\d|3[01])$/.test(key))) {
+    monthly[isoMonth(today)] = normalizeMonthlyEntry(monthlyRaw); // migrate legacy single month
+  } else {
+    for (const [key, value] of Object.entries(monthlyRaw)) {
+      if (/^\d{4}-\d{2}$/.test(key)) monthly[key] = normalizeMonthlyEntry(value);
+    }
+  }
+
+  const vd = source.viewDates && typeof source.viewDates === "object" ? source.viewDates : {};
+  const viewDates = {
+    daily: /^\d{4}-\d{2}-\d{2}$/.test(vd.daily) ? vd.daily : isoDate(today),
+    weekly: /^\d{4}-\d{2}-\d{2}$/.test(vd.weekly) ? weekStartIso(parseIsoDate(vd.weekly)) : weekStartIso(today),
+    monthly: /^\d{4}-\d{2}$/.test(vd.monthly) ? vd.monthly : isoMonth(today),
   };
+
+  return { daily, weekly, monthly, viewDates };
 }
 
 function templateUseCount(templateId) {
@@ -397,6 +413,68 @@ function currentWeekDates() {
 
 function shortDateLabel(date) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function isoDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function isoMonth(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function parseIsoDate(iso) {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function weekStartIso(date) {
+  return isoDate(startOfWeek(date));
+}
+
+function weekDatesFrom(startDate) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(startDate);
+    day.setDate(startDate.getDate() + index);
+    return day;
+  });
+}
+
+function blankDaily() {
+  return {
+    topThree: Array.from({ length: 3 }, () => ({ done: false, text: "" })),
+    schedule: ["", "", "", ""],
+    joys: "",
+  };
+}
+
+function normalizeDailyEntry(entry) {
+  const e = entry && typeof entry === "object" ? entry : {};
+  const topThree = Array.isArray(e.topThree) ? e.topThree : [];
+  const schedule = Array.isArray(e.schedule) ? e.schedule : [];
+  return {
+    topThree: Array.from({ length: 3 }, (_, i) => ({ done: Boolean(topThree[i]?.done), text: String(topThree[i]?.text || "").slice(0, 80) })),
+    schedule: Array.from({ length: 4 }, (_, i) => String(schedule[i] || "").slice(0, 80)),
+    joys: String(e.joys || "").slice(0, 200),
+  };
+}
+
+function normalizeWeeklyEntry(entry) {
+  const e = entry && typeof entry === "object" ? entry : {};
+  return Object.fromEntries(Array.from({ length: 7 }, (_, day) => {
+    const slots = Array.isArray(e[day]) ? e[day] : [];
+    return [day, Array.from({ length: 2 }, (_, slot) => String(slots[slot] || "").slice(0, 80))];
+  }));
+}
+
+function normalizeMonthlyEntry(entry) {
+  const e = entry && typeof entry === "object" && !Array.isArray(entry) ? entry : {};
+  return Object.fromEntries(
+    Object.entries(e)
+      .filter(([key]) => /^([1-9]|[12]\d|3[01])$/.test(key))
+      .map(([key, value]) => [key, String(value || "").slice(0, 40)])
+      .filter(([, value]) => value)
+  );
 }
 
 function habitCheckKey(row, day) {
@@ -1166,14 +1244,28 @@ function notebookPage(side) {
   `;
 }
 
+function plannerNavHtml(kind, label, isCurrent, currentLabel) {
+  return `
+    <div class="planner-nav">
+      <button class="planner-arrow" data-planner-nav="${kind}-prev" aria-label="Previous ${kind === "daily" ? "day" : kind === "weekly" ? "week" : "month"}">&#9664;</button>
+      <div class="planner-date ${isCurrent ? "is-current" : ""}">${label}${isCurrent ? ` &middot; ${currentLabel}` : ""}</div>
+      <button class="planner-arrow" data-planner-nav="${kind}-next" aria-label="Next ${kind === "daily" ? "day" : kind === "weekly" ? "week" : "month"}">&#9654;</button>
+      ${isCurrent ? "" : `<button class="planner-today" data-planner-nav="${kind}-today">${currentLabel}</button>`}
+    </div>`;
+}
+
 function weeklyPage() {
   const data = normalizeTemplateData(state.templateData);
   const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const hints = ["Morning notes", "Sketch ideas", "Meeting notes", "Study session", "Freewriting", "Reading notes", "Plan next week"];
-  const dates = currentWeekDates();
-  const today = new Date().getDate();
-  return `<h1>Cozy Week <span>&#9825;</span></h1><div class="week-list">${dayNames.map((day, index) => `
-    <div class="day-row ${dates[index].getDate() === today ? "today" : ""}"><div class="date-card ${day.toLowerCase()}"><span>${day}</span><strong>${dates[index].getDate()}</strong></div><div class="day-entries">${[0, 1].map((slot) => `<input class="day-entry" data-week-day="${index}" data-week-slot="${slot}" value="${escapeHtml(data.weekly[index][slot])}" placeholder="${slot === 0 ? hints[index] : "Add a note"}" maxlength="80" />`).join("")}</div></div>
+  const weekStart = parseIsoDate(data.viewDates.weekly);
+  const dates = weekDatesFrom(weekStart);
+  const week = data.weekly[data.viewDates.weekly] || normalizeWeeklyEntry({});
+  const todayIso = isoDate(new Date());
+  const isThisWeek = data.viewDates.weekly === weekStartIso(new Date());
+  const rangeLabel = `${shortDateLabel(dates[0])} - ${shortDateLabel(dates[6])}`;
+  return `<h1>Cozy Week <span>&#9825;</span></h1>${plannerNavHtml("weekly", rangeLabel, isThisWeek, "This week")}<div class="week-list">${dayNames.map((day, index) => `
+    <div class="day-row ${isoDate(dates[index]) === todayIso ? "today" : ""}"><div class="date-card ${day.toLowerCase()}"><span>${day}</span><strong>${dates[index].getDate()}</strong></div><div class="day-entries">${[0, 1].map((slot) => `<input class="day-entry" data-week-day="${index}" data-week-slot="${slot}" value="${escapeHtml(week[index][slot])}" placeholder="${slot === 0 ? hints[index] : "Add a note"}" maxlength="80" />`).join("")}</div></div>
   `).join("")}</div>`;
 }
 
@@ -1204,11 +1296,14 @@ function trackerPage() {
 }
 
 function dailyPage() {
-  const daily = normalizeTemplateData(state.templateData).daily;
+  const data = normalizeTemplateData(state.templateData);
+  const viewIso = data.viewDates.daily;
+  const daily = data.daily[viewIso] || blankDaily();
   const taskHints = ["gentle morning", "write one page", "tidy desk"];
   const scheduleHints = ["9:00 tea + planning", "12:30 lunch walk", "15:00 deep focus", "18:00 reset"];
-  const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  return `<h1>Today <span>&#9825;</span></h1><div class="today-date">${todayLabel}</div><div class="daily-grid">
+  const dateLabel = parseIsoDate(viewIso).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const isToday = viewIso === isoDate(new Date());
+  return `<h1>Daily <span>&#9825;</span></h1>${plannerNavHtml("daily", dateLabel, isToday, "Today")}<div class="daily-grid">
     <section><h2>top three</h2><div class="daily-tasks">${daily.topThree.map((task, index) => `<div class="daily-task"><button class="daily-task-check ${task.done ? "done" : ""}" data-daily-task="${index}" aria-pressed="${task.done}" aria-label="Toggle task ${index + 1}"></button><input class="daily-task-text ${task.done ? "done" : ""}" data-daily-field="task" data-daily-index="${index}" value="${escapeHtml(task.text)}" placeholder="${taskHints[index]}" maxlength="80" /></div>`).join("")}</div></section>
     <section><h2>schedule</h2><div class="daily-schedule">${daily.schedule.map((entry, index) => `<input class="daily-schedule-entry" data-daily-field="schedule" data-daily-index="${index}" value="${escapeHtml(entry)}" placeholder="${scheduleHints[index]}" maxlength="80" />`).join("")}</div></section>
     <section><h2>little joys</h2><textarea class="daily-joys" data-daily-field="joys" data-daily-index="0" placeholder="fresh flowers, soft socks, music" maxlength="200">${escapeHtml(daily.joys)}</textarea></section>
@@ -1221,19 +1316,24 @@ function habitPage(title) {
 
 function monthPage() {
   const data = normalizeTemplateData(state.templateData);
+  const viewMonth = data.viewDates.monthly;
+  const [year, month] = viewMonth.split("-").map(Number);
+  const monthIndex = month - 1;
+  const viewDate = new Date(year, monthIndex, 1);
+  const notes = data.monthly[viewMonth] || {};
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstOffset = (new Date(year, month, 1).getDay() + 6) % 7;
-  const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const isThisMonth = viewMonth === isoMonth(now);
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const firstOffset = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+  const monthLabel = viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const heads = ["M", "T", "W", "T", "F", "S", "S"].map((day) => `<b class="month-head">${day}</b>`).join("");
   const blanks = Array.from({ length: firstOffset }, () => `<div class="month-cell empty"></div>`).join("");
   const cells = Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1;
-    return `<div class="month-cell ${day === now.getDate() ? "today" : ""}"><b>${day}</b><input class="month-note" data-month-day="${day}" value="${escapeHtml(data.monthly[day] || "")}" maxlength="40" aria-label="Plan for day ${day}" /></div>`;
+    const isToday = isThisMonth && day === now.getDate();
+    return `<div class="month-cell ${isToday ? "today" : ""}"><b>${day}</b><input class="month-note" data-month-day="${day}" value="${escapeHtml(notes[day] || "")}" maxlength="40" aria-label="Plan for day ${day}" /></div>`;
   }).join("");
-  return `<h1>${monthLabel} <span>&#9825;</span></h1><div class="month-grid">${heads}${blanks}${cells}</div>`;
+  return `<h1>Monthly <span>&#9825;</span></h1>${plannerNavHtml("monthly", monthLabel, isThisMonth, "This month")}<div class="month-grid">${heads}${blanks}${cells}</div>`;
 }
 
 function readingPage() {
@@ -1290,6 +1390,8 @@ function bindDelegatedEvents() {
     if (readingRemove) return removeReadingEntry(readingRemove.dataset.readingRemove);
     const dailyTask = event.target.closest?.("[data-daily-task]");
     if (dailyTask) return toggleDailyTask(dailyTask.dataset.dailyTask);
+    const plannerNav = event.target.closest?.("[data-planner-nav]");
+    if (plannerNav) return shiftPlanner(plannerNav.dataset.plannerNav);
     const stickerPack = event.target.closest?.("[data-sticker-pack]");
     if (stickerPack) return setStickerPack(stickerPack.dataset.stickerPack);
     const customTemplate = event.target.closest?.("[data-custom-template]");
@@ -1757,12 +1859,25 @@ function removeReadingEntry(indexValue) {
   persist();
 }
 
+function currentDailyEntry(data) {
+  const iso = data.viewDates.daily;
+  if (!data.daily[iso]) data.daily[iso] = blankDaily();
+  return data.daily[iso];
+}
+
+function currentWeeklyEntry(data) {
+  const iso = data.viewDates.weekly;
+  if (!data.weekly[iso]) data.weekly[iso] = normalizeWeeklyEntry({});
+  return data.weekly[iso];
+}
+
 function toggleDailyTask(indexValue) {
   const index = Number(indexValue);
   if (!Number.isInteger(index) || index < 0 || index > 2) return;
   pushHistory();
   const data = normalizeTemplateData(state.templateData);
-  data.daily.topThree[index].done = !data.daily.topThree[index].done;
+  const entry = currentDailyEntry(data);
+  entry.topThree[index].done = !entry.topThree[index].done;
   state.templateData = data;
   render();
   persist();
@@ -1771,9 +1886,10 @@ function toggleDailyTask(indexValue) {
 function updateDailyField(field, indexValue, value) {
   const index = Number(indexValue);
   const data = normalizeTemplateData(state.templateData);
-  if (field === "task" && index >= 0 && index < 3) data.daily.topThree[index].text = String(value).slice(0, 80);
-  else if (field === "schedule" && index >= 0 && index < 4) data.daily.schedule[index] = String(value).slice(0, 80);
-  else if (field === "joys") data.daily.joys = String(value).slice(0, 200);
+  const entry = currentDailyEntry(data);
+  if (field === "task" && index >= 0 && index < 3) entry.topThree[index].text = String(value).slice(0, 80);
+  else if (field === "schedule" && index >= 0 && index < 4) entry.schedule[index] = String(value).slice(0, 80);
+  else if (field === "joys") entry.joys = String(value).slice(0, 200);
   else return;
   state.templateData = data;
   persist();
@@ -1785,7 +1901,7 @@ function updateWeekEntry(dayValue, slotValue, value) {
   if (!Number.isInteger(day) || day < 0 || day > 6) return;
   if (!Number.isInteger(slot) || slot < 0 || slot > 1) return;
   const data = normalizeTemplateData(state.templateData);
-  data.weekly[day][slot] = String(value).slice(0, 80);
+  currentWeeklyEntry(data)[day][slot] = String(value).slice(0, 80);
   state.templateData = data;
   persist();
 }
@@ -1794,10 +1910,42 @@ function updateMonthEntry(dayValue, value) {
   const day = Number(dayValue);
   if (!Number.isInteger(day) || day < 1 || day > 31) return;
   const data = normalizeTemplateData(state.templateData);
+  const iso = data.viewDates.monthly;
+  if (!data.monthly[iso]) data.monthly[iso] = {};
   const text = String(value).slice(0, 40);
-  if (text) data.monthly[day] = text;
-  else delete data.monthly[day];
+  if (text) data.monthly[iso][day] = text;
+  else delete data.monthly[iso][day];
   state.templateData = data;
+  persist();
+}
+
+function shiftPlanner(nav) {
+  const data = normalizeTemplateData(state.templateData);
+  const now = new Date();
+  if (nav.startsWith("daily")) {
+    let d = parseIsoDate(data.viewDates.daily);
+    if (nav === "daily-prev") d.setDate(d.getDate() - 1);
+    else if (nav === "daily-next") d.setDate(d.getDate() + 1);
+    else d = now;
+    data.viewDates.daily = isoDate(d);
+  } else if (nav.startsWith("weekly")) {
+    let d = parseIsoDate(data.viewDates.weekly);
+    if (nav === "weekly-prev") d.setDate(d.getDate() - 7);
+    else if (nav === "weekly-next") d.setDate(d.getDate() + 7);
+    else d = now;
+    data.viewDates.weekly = weekStartIso(d);
+  } else if (nav.startsWith("monthly")) {
+    const [year, month] = data.viewDates.monthly.split("-").map(Number);
+    let d = new Date(year, month - 1, 1);
+    if (nav === "monthly-prev") d = new Date(year, month - 2, 1);
+    else if (nav === "monthly-next") d = new Date(year, month, 1);
+    else d = new Date(now.getFullYear(), now.getMonth(), 1);
+    data.viewDates.monthly = isoMonth(d);
+  } else {
+    return;
+  }
+  state.templateData = data;
+  render();
   persist();
 }
 

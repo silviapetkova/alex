@@ -1520,6 +1520,76 @@ button {
   margin: -8px 0 12px;
 }
 
+.planner-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 14px;
+  flex-wrap: wrap;
+}
+
+.planner-arrow {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(125, 121, 117, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.9);
+  color: #6d3040;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+
+.planner-arrow:hover {
+  background: var(--pink);
+  border-color: var(--pink-deep);
+}
+
+.planner-date {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-family: "Comic Sans MS", "Segoe Print", cursive;
+  font-size: 17px;
+  color: #5a534d;
+}
+
+.planner-date.is-current {
+  color: var(--pink-deep);
+  font-weight: 700;
+}
+
+.planner-today {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(125, 121, 117, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.9);
+  color: #403a37;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+
+.planner-today:hover {
+  background: var(--pink);
+}
+
+.planner-arrow:focus-visible,
+.planner-today:focus-visible {
+  outline: 2px solid var(--pink-deep);
+  outline-offset: 2px;
+}
+
 .daily-tasks,
 .daily-schedule {
   display: flex;

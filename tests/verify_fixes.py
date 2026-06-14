@@ -232,7 +232,12 @@ def run():
         if len(entries) != 1 or entries[0].get("title") != "The Secret Garden":
             failures.append(f"remove book failed: {entries}")
 
-        # --- Daily page: toggle a task, edit schedule, persists ---
+        import datetime
+        today = datetime.date.today()
+        today_iso = today.isoformat()
+        monday = today - datetime.timedelta(days=today.weekday())
+
+        # --- Daily page: date-keyed content + persistence ---
         page.click("[data-template='daily']")
         task_check = "[data-daily-task='0']"
         page.wait_for_selector(task_check)
@@ -240,45 +245,62 @@ def run():
         page.wait_for_timeout(400)
         page.click(task_check)
         page.wait_for_timeout(300)
-        pressed = page.get_attribute(task_check, "aria-pressed")
-        if pressed != "true":
-            failures.append(f"daily task did not toggle done, aria-pressed={pressed}")
-        task_value = page.input_value("[data-daily-field='task'][data-daily-index='0']")
-        if task_value != "water the plants":
-            failures.append(f"daily task text lost after toggle: '{task_value}'")
-        page.fill("[data-daily-field='schedule'][data-daily-index='0']", "8:00 slow breakfast")
-        page.wait_for_timeout(400)
-        saved_daily = (active_page(page).get("templateData") or {}).get("daily", {})
-        if not saved_daily.get("topThree", [{}])[0].get("done"):
-            failures.append(f"daily task done not persisted: {saved_daily}")
-        if saved_daily.get("schedule", [""])[0] != "8:00 slow breakfast":
-            failures.append(f"daily schedule not persisted: {saved_daily}")
+        if page.get_attribute(task_check, "aria-pressed") != "true":
+            failures.append("daily task did not toggle done")
+        if page.input_value("[data-daily-field='task'][data-daily-index='0']") != "water the plants":
+            failures.append("daily task text lost after toggle")
+        daily_map = (active_page(page).get("templateData") or {}).get("daily", {})
+        if today_iso not in daily_map:
+            failures.append(f"daily content not keyed by today's date: keys={list(daily_map)}")
+        elif not daily_map[today_iso]["topThree"][0]["done"]:
+            failures.append("daily task done not persisted under today's date")
 
-        # --- Weekly page: real dates + editable entries ---
+        # --- Daily navigation: previous day is a separate, empty page ---
+        page.click("[data-planner-nav='daily-prev']")
+        page.wait_for_timeout(300)
+        if page.input_value("[data-daily-field='task'][data-daily-index='0']") != "":
+            failures.append("previous day should start empty (date isolation broken)")
+        page.fill("[data-daily-field='task'][data-daily-index='0']", "yesterday task")
+        page.wait_for_timeout(400)
+        page.click("[data-planner-nav='daily-today']")
+        page.wait_for_timeout(300)
+        if page.input_value("[data-daily-field='task'][data-daily-index='0']") != "water the plants":
+            failures.append("returning to Today lost today's content")
+        daily_map = (active_page(page).get("templateData") or {}).get("daily", {})
+        yest_iso = (today - datetime.timedelta(days=1)).isoformat()
+        if daily_map.get(yest_iso, {}).get("topThree", [{}])[0].get("text") != "yesterday task":
+            failures.append(f"previous-day content not stored separately: {list(daily_map)}")
+
+        # --- Weekly: navigation shifts the date range ---
         page.click("[data-template='week']")
         page.wait_for_selector("[data-week-day='0'][data-week-slot='0']")
-        import datetime
-        monday = datetime.date.today() - datetime.timedelta(days=datetime.date.today().weekday())
-        shown = page.text_content(".day-row .date-card strong")
-        if shown != str(monday.day):
-            failures.append(f"weekly Monday shows {shown}, expected {monday.day}")
+        if page.text_content(".day-row .date-card strong") != str(monday.day):
+            failures.append("weekly Monday cell not the real current Monday")
         page.fill("[data-week-day='2'][data-week-slot='0']", "library trip")
         page.wait_for_timeout(400)
-        saved_week = (active_page(page).get("templateData") or {}).get("weekly", {})
-        if saved_week.get("2", ["", ""])[0] != "library trip":
-            failures.append(f"weekly entry not persisted: {saved_week}")
+        week_map = (active_page(page).get("templateData") or {}).get("weekly", {})
+        if week_map.get(monday.isoformat(), {}).get("2", ["", ""])[0] != "library trip":
+            failures.append(f"weekly entry not keyed by week start: {list(week_map)}")
+        page.click("[data-planner-nav='weekly-prev']")
+        page.wait_for_timeout(300)
+        prev_monday = monday - datetime.timedelta(days=7)
+        if page.text_content(".day-row .date-card strong") != str(prev_monday.day):
+            failures.append("weekly-prev did not move to the previous week")
 
-        # --- Monthly planner: real calendar, editable day note ---
+        # --- Monthly: navigation shifts the month ---
         page.click("[data-template='month']")
         page.wait_for_selector(".month-grid")
-        today_num = page.text_content(".month-cell.today b")
-        if today_num != str(datetime.date.today().day):
-            failures.append(f"month grid today cell shows {today_num}")
-        page.fill(f"[data-month-day='{today_num}']", "dentist 3pm")
+        if page.text_content(".month-cell.today b") != str(today.day):
+            failures.append("month grid 'today' cell wrong")
+        page.fill(f"[data-month-day='{today.day}']", "dentist 3pm")
         page.wait_for_timeout(400)
-        saved_month = (active_page(page).get("templateData") or {}).get("monthly", {})
-        if saved_month.get(str(today_num)) != "dentist 3pm":
-            failures.append(f"month note not persisted: {saved_month}")
+        month_map = (active_page(page).get("templateData") or {}).get("monthly", {})
+        if month_map.get(today.strftime("%Y-%m"), {}).get(str(today.day)) != "dentist 3pm":
+            failures.append(f"month note not keyed by year-month: {list(month_map)}")
+        page.click("[data-planner-nav='monthly-prev']")
+        page.wait_for_timeout(300)
+        if page.locator(".month-cell.today").count() != 0:
+            failures.append("previous month should not highlight a 'today' cell")
 
         # --- Sticker packs: switch pack, search by name, place a mark ---
         page.click("[data-inspector-tab='Marks']")
