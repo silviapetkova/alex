@@ -616,7 +616,7 @@ button {
 
 .topbar {
   display: grid;
-  grid-template-columns: 150px 44px 200px minmax(500px, 1fr) 360px;
+  grid-template-columns: auto 44px minmax(120px, 190px) minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 8px 20px;
@@ -729,10 +729,18 @@ button {
 }
 
 .toolstrip {
-  justify-self: center;
+  justify-self: stretch;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.toolstrip::-webkit-scrollbar {
+  display: none;
 }
 
 .tool-button {
@@ -848,7 +856,7 @@ button {
 
 .workspace {
   display: grid;
-  grid-template-columns: 294px minmax(620px, 1fr) 320px;
+  grid-template-columns: 264px minmax(0, 1fr) 320px;
   min-height: 0;
 }
 
@@ -1091,8 +1099,8 @@ button {
 }
 
 .book-spread {
-  width: min(920px, calc(100vw - 680px));
-  min-width: 620px;
+  width: min(920px, 100%);
+  min-width: 0;
   aspect-ratio: 1.45;
   position: relative;
   display: grid;
@@ -3118,7 +3126,7 @@ button {
   }
 }
 
-@media (max-width: 1440px) and (min-width: 981px) {
+@media (max-width: 1180px) and (min-width: 981px) {
   body {
     overflow: hidden;
   }

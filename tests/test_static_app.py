@@ -331,7 +331,7 @@ def test_styles_include_notebook_controls():
         ".theme-swatch",
         "body[data-theme=\"mint\"]",
         "@media (pointer: coarse)",
-        "@media (max-width: 1440px)",
+        "@media (max-width: 1180px)",
         "grid-template-areas:\n      \"left canvas right\"",
         "grid-template-columns: minmax(0, 1fr) minmax(278px, 34vw)",
         "@media (max-width: 620px)",
