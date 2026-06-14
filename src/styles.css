@@ -1099,7 +1099,7 @@ button {
 }
 
 .book-spread {
-  width: min(920px, 100%);
+  width: min(920px, calc(100vw - 624px));
   min-width: 0;
   aspect-ratio: 1.45;
   position: relative;
