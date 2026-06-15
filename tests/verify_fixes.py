@@ -153,27 +153,47 @@ def run():
         if images_after != images_before + 1:
             failures.append(f"drag-drop image failed: {images_before} -> {images_after}")
 
-        # --- Collapse sidebars: panels hide, book grows, no overflow ---
+        # --- Collapse sidebars: panels shrink to 0, no overlap, book grows ---
         page.click("[data-tool='select']")
-        book_full = page.evaluate("() => Math.round(document.querySelector('.book-spread').getBoundingClientRect().width)")
+
+        def panel_widths():
+            return page.evaluate(
+                """() => ({
+                  left: Math.round(document.querySelector('.left-panel').getBoundingClientRect().width),
+                  right: Math.round(document.querySelector('.right-panel').getBoundingClientRect().width),
+                  book: Math.round(document.querySelector('.book-spread').getBoundingClientRect().width),
+                  overlap: document.querySelector('.canvas-zone').getBoundingClientRect().right
+                           > document.querySelector('.right-panel').getBoundingClientRect().left + 1,
+                  pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
+                })"""
+            )
+
+        full = panel_widths()
+        # collapse left only - this is the case that previously broke (grid reflow)
         page.click("[data-action='toggle-left-panel']")
         page.wait_for_timeout(250)
-        if page.locator(".left-panel").is_visible():
-            failures.append("left panel did not hide on toggle")
+        left_only = panel_widths()
+        if left_only["left"] > 2:
+            failures.append(f"left panel did not collapse (width {left_only['left']})")
+        if left_only["overlap"]:
+            failures.append("canvas overlaps right panel when left collapsed")
+        if left_only["right"] < 200:
+            failures.append(f"right panel wrongly shrank when left collapsed (width {left_only['right']})")
+        # collapse both
         page.click("[data-action='toggle-right-panel']")
         page.wait_for_timeout(250)
-        if page.locator(".right-panel").is_visible():
-            failures.append("right panel did not hide on toggle")
-        book_collapsed = page.evaluate("() => Math.round(document.querySelector('.book-spread').getBoundingClientRect().width)")
-        if book_collapsed <= book_full:
-            failures.append(f"book did not grow when sidebars collapsed ({book_full} -> {book_collapsed})")
-        if page.evaluate("() => document.documentElement.scrollWidth > document.documentElement.clientWidth"):
-            failures.append("page overflow while sidebars collapsed")
+        both = panel_widths()
+        if both["right"] > 2 or both["overlap"] or both["pageOverflow"]:
+            failures.append(f"both-collapsed layout broken: {both}")
+        if both["book"] <= full["book"]:
+            failures.append(f"book did not grow when collapsed ({full['book']} -> {both['book']})")
+        # restore
         page.click("[data-action='toggle-left-panel']")
         page.click("[data-action='toggle-right-panel']")
         page.wait_for_timeout(250)
-        if not page.locator(".left-panel").is_visible() or not page.locator(".right-panel").is_visible():
-            failures.append("panels did not return after toggling back on")
+        restored = panel_widths()
+        if restored["left"] < 200 or restored["right"] < 200:
+            failures.append(f"panels did not return after toggling back ({restored})")
 
         # --- Service worker registers (PWA install/offline path) ---
         sw_state = page.evaluate(
