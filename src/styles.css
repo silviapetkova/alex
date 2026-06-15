@@ -2105,6 +2105,22 @@ button {
   margin: 0 0 18px;
 }
 
+.prompt-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.prompt-label {
+  flex: 0 0 auto;
+}
+
+.prompt-line {
+  flex: 1;
+  border-bottom: 1.6px solid #c9bdb4;
+  height: 1.25em;
+}
+
 .canvas-sticker {
   width: 56px;
   height: 56px;

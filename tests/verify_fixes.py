@@ -220,6 +220,15 @@ def run():
         if "#3c9b70" not in storage(page).get("favoriteColors", []):
             failures.append(f"favorite color not persisted: {storage(page).get('favoriteColors')}")
 
+        # Template-interaction tests run on a fresh, empty page so the
+        # sample notebook's decorative seed elements don't overlap fields,
+        # and in Select mode so the ink canvas doesn't intercept clicks.
+        page.click("[data-inspector-tab='Pages']")
+        page.click("[data-action='new-page']")
+        page.wait_for_timeout(300)
+        page.click("[data-tool='select']")
+        page.wait_for_timeout(100)
+
         # --- Reading log: type, rate, add a second book, remove it ---
         page.click("[data-template='reading']")
         title_input = "[data-reading-field='title'][data-reading-index='0']"

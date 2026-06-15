@@ -1,5 +1,5 @@
 const STORAGE_KEY = "alex-journal-prototype";
-const APP_VERSION = "v5";
+const APP_VERSION = "v6";
 
 const templates = [
   { title: "Notebook Pages", template: "notebook", icon: "&#9636;" },
@@ -87,14 +87,14 @@ const penPresets = [
 ];
 
 const seedElements = [
-  { id: "note-1", type: "text", value: "Write, sketch, underline, and collect thoughts here.", x: 64, y: 72, size: 18 },
-  { id: "sticker-1", type: "sticker", value: "&#9825;", x: 37, y: 78, size: 40 },
+  { id: "note-1", type: "text", value: "Write, sketch, underline, and collect thoughts here.", x: 25, y: 80, size: 16 },
+  { id: "sticker-1", type: "sticker", value: "&#9825;", x: 88, y: 90, size: 34 },
 ];
 
 const startHereElements = [
-  { id: "start-note-1", type: "text", value: "Welcome to Alex. Try writing with the pen, adding marks, and changing paper from the tools.", x: 57, y: 63, size: 17 },
-  { id: "start-heart-1", type: "sticker", value: "&#9825;", x: 31, y: 27, size: 42 },
-  { id: "start-flower-1", type: "sticker", value: "&#10047;", x: 70, y: 36, size: 36 },
+  { id: "start-note-1", type: "text", value: "Welcome to Alex. Try writing with the pen, adding marks, and changing paper from the tools.", x: 25, y: 78, size: 16 },
+  { id: "start-heart-1", type: "sticker", value: "&#9825;", x: 12, y: 90, size: 34 },
+  { id: "start-flower-1", type: "sticker", value: "&#10047;", x: 88, y: 90, size: 32 },
 ];
 
 const defaultSettings = {
@@ -1242,11 +1242,11 @@ function pageTemplate(side) {
 }
 
 function notebookPage(side) {
+  const fields = side === "left" ? ["Date", "Focus"] : ["Topic", "Questions"];
   return `
     <h1>${side === "left" ? "Notebook" : "Thoughts"} <span>&#9825;</span></h1>
     <div class="notebook-prompt">
-      <p>${side === "left" ? "Date" : "Topic"}: ______________________________</p>
-      <p>${side === "left" ? "Focus" : "Questions"}: ___________________________</p>
+      ${fields.map((label) => `<p class="prompt-row"><span class="prompt-label">${label}</span><span class="prompt-line"></span></p>`).join("")}
     </div>
   `;
 }
