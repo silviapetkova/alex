@@ -1218,6 +1218,9 @@ button {
 .page {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   padding: 34px 34px 28px;
   overflow: hidden;
 }
@@ -1530,8 +1533,10 @@ button {
 .blank-lines,
 .reading-lines,
 .budget-table {
-  min-height: 180px;
+  flex: 1;
+  min-height: 140px;
   border: 1px solid #eadbd0;
+  border-radius: 8px;
   background: repeating-linear-gradient(#fffdf7 0 29px, #d8cec5 30px 31px);
 }
 
@@ -1844,11 +1849,12 @@ button {
 }
 
 .reading-form {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 12px 4px 12px 0;
-  max-height: calc(100% - 64px);
   overflow-y: auto;
   scrollbar-width: thin;
 }
