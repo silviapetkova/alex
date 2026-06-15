@@ -1118,6 +1118,7 @@ button {
   overflow: hidden;
   overscroll-behavior: contain;
   touch-action: none;
+  container-type: size;
 }
 
 .stage-transform {
@@ -1129,7 +1130,7 @@ button {
 }
 
 .book-spread {
-  width: min(920px, calc(100vw - var(--left-col) - var(--right-col) - 40px));
+  width: min(920px, calc(100cqw - 8px), calc((100cqh - 8px) * 1.45));
   min-width: 0;
   aspect-ratio: 1.45;
   position: relative;
@@ -3278,7 +3279,6 @@ button {
   }
 
   .book-spread {
-    width: min(100%, 720px);
     min-width: 0;
   }
 
@@ -3458,6 +3458,7 @@ button {
 
   .journal-stage {
     padding: 14px 10px;
+    container-type: normal;
   }
 
   .book-spread {

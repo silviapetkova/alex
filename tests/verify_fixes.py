@@ -195,6 +195,21 @@ def run():
         if restored["left"] < 200 or restored["right"] < 200:
             failures.append(f"panels did not return after toggling back ({restored})")
 
+        # --- Page fits vertically on a short window (no cut-off bottom) ---
+        page.set_viewport_size({"width": 1280, "height": 680})
+        page.wait_for_timeout(250)
+        vfit = page.evaluate(
+            """() => {
+              const bk = document.querySelector('.book-spread').getBoundingClientRect();
+              const st = document.querySelector('.journal-stage').getBoundingClientRect();
+              return { bottomCut: bk.bottom > st.bottom + 1 };
+            }"""
+        )
+        if vfit["bottomCut"]:
+            failures.append("notebook page bottom is cut off on a short window")
+        page.set_viewport_size({"width": 1280, "height": 900})
+        page.wait_for_timeout(150)
+
         # --- Service worker registers (PWA install/offline path) ---
         sw_state = page.evaluate(
             "() => navigator.serviceWorker.getRegistration().then(r => r ? 'registered' : 'none')"
