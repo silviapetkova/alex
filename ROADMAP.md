@@ -141,6 +141,7 @@ Phase 4 mostly complete. Next: performance monitoring, mobile optimization, and 
 - Added a Monthly Plan template: real current-month calendar with weekday-aligned grid, highlighted today, and a saved note per day.
 - Added custom templates: save the current page (template, paper, placed marks) as a named reusable template, create new pages from it, or delete it. Page Types counts now show real per-template page counts instead of decorative numbers.
 - Added element lock, saved favorite colors, and placeable shapes (square/circle/line).
+- Added collapsible sidebars: topbar toggles hide the notebooks panel and/or the tools panel (saved), and the notebook spread grows to fill the freed space for a focused writing view.
 - Published the app as a live PWA on GitHub Pages (silviapetkova/alex) with an auto-deploy workflow.
 - Made the Daily, Weekly, and Monthly planners genuinely date-aware: each has Previous / Next / Today (or This week / This month) navigation, and every date's content is stored separately, so you can page back to earlier days and forward to plan ahead. Legacy single-entry data is migrated to the current date on load.
 - Re-enabled the service worker (cache v4) so Alex installs as a PWA and the full app shell loads offline - verified with an offline reload. This completes the first Phase 7 step.

@@ -612,6 +612,31 @@ button {
   display: grid;
   grid-template-rows: 72px 1fr;
   background: rgba(255, 253, 249, 0.7);
+  --left-col: 264px;
+  --right-col: 320px;
+}
+
+.app-shell.left-collapsed {
+  --left-col: 0px;
+}
+
+.app-shell.right-collapsed {
+  --right-col: 0px;
+}
+
+.app-shell.left-collapsed .left-panel {
+  display: none;
+}
+
+.app-shell.right-collapsed .right-panel {
+  display: none;
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .topbar {
@@ -674,6 +699,11 @@ button {
 
 .icon-button.active-soft {
   background: #f2ece7;
+}
+
+.icon-button.active {
+  background: var(--pink);
+  color: #6d3040;
 }
 
 .icon-button.muted {
@@ -856,7 +886,7 @@ button {
 
 .workspace {
   display: grid;
-  grid-template-columns: 264px minmax(0, 1fr) 320px;
+  grid-template-columns: var(--left-col) minmax(0, 1fr) var(--right-col);
   min-height: 0;
 }
 
@@ -1099,7 +1129,7 @@ button {
 }
 
 .book-spread {
-  width: min(920px, calc(100vw - 624px));
+  width: min(920px, calc(100vw - var(--left-col) - var(--right-col) - 40px));
   min-width: 0;
   aspect-ratio: 1.45;
   position: relative;
@@ -3196,6 +3226,18 @@ button {
       "left canvas right";
   }
 
+  .app-shell.left-collapsed .workspace {
+    grid-template-columns: 0 minmax(0, 1fr) minmax(278px, 30vw);
+  }
+
+  .app-shell.right-collapsed .workspace {
+    grid-template-columns: 232px minmax(0, 1fr) 0;
+  }
+
+  .app-shell.left-collapsed.right-collapsed .workspace {
+    grid-template-columns: 0 minmax(0, 1fr) 0;
+  }
+
   .left-panel {
     grid-area: left;
     grid-template-columns: 52px 1fr;
@@ -3376,6 +3418,10 @@ button {
 
   .workspace {
     grid-template-columns: minmax(0, 1fr) minmax(278px, 34vw);
+  }
+
+  .app-shell.right-collapsed .workspace {
+    grid-template-columns: minmax(0, 1fr) 0;
   }
 
   .left-panel {

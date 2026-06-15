@@ -153,6 +153,28 @@ def run():
         if images_after != images_before + 1:
             failures.append(f"drag-drop image failed: {images_before} -> {images_after}")
 
+        # --- Collapse sidebars: panels hide, book grows, no overflow ---
+        page.click("[data-tool='select']")
+        book_full = page.evaluate("() => Math.round(document.querySelector('.book-spread').getBoundingClientRect().width)")
+        page.click("[data-action='toggle-left-panel']")
+        page.wait_for_timeout(250)
+        if page.locator(".left-panel").is_visible():
+            failures.append("left panel did not hide on toggle")
+        page.click("[data-action='toggle-right-panel']")
+        page.wait_for_timeout(250)
+        if page.locator(".right-panel").is_visible():
+            failures.append("right panel did not hide on toggle")
+        book_collapsed = page.evaluate("() => Math.round(document.querySelector('.book-spread').getBoundingClientRect().width)")
+        if book_collapsed <= book_full:
+            failures.append(f"book did not grow when sidebars collapsed ({book_full} -> {book_collapsed})")
+        if page.evaluate("() => document.documentElement.scrollWidth > document.documentElement.clientWidth"):
+            failures.append("page overflow while sidebars collapsed")
+        page.click("[data-action='toggle-left-panel']")
+        page.click("[data-action='toggle-right-panel']")
+        page.wait_for_timeout(250)
+        if not page.locator(".left-panel").is_visible() or not page.locator(".right-panel").is_visible():
+            failures.append("panels did not return after toggling back on")
+
         # --- Service worker registers (PWA install/offline path) ---
         sw_state = page.evaluate(
             "() => navigator.serviceWorker.getRegistration().then(r => r ? 'registered' : 'none')"

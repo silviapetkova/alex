@@ -168,6 +168,8 @@ let state = {
   activeStickerPack: "classic",
   customTemplates: [],
   favoriteColors: [],
+  leftCollapsed: false,
+  rightCollapsed: false,
   redoPaths: [],
   undoStack: [],
   redoStack: [],
@@ -588,7 +590,8 @@ function icon(name) {
     menu: "&#9776;", pointer: "&#8982;", pen: "&#9998;", highlighter: "&#9644;", erase: "&#9003;", text: "T", sticker: "&#9734;", image: "&#9639;",
     undo: "&#8630;", redo: "&#8631;", export: "&#8681;", save: "&#10003;", plus: "+", search: "&#8981;",
     book: "&#9637;", tags: "&#9671;", heart: "&#9825;", palette: "&#9680;", file: "&#9783;", grid: "&#9638;",
-    left: "&#8249;", right: "&#8250;", down: "&#8964;", edit: "&#9997;", trash: "&#9003;"
+    left: "&#8249;", right: "&#8250;", down: "&#8964;", edit: "&#9997;", trash: "&#9003;",
+    panel: "&#9707;"
   };
   return icons[name] || "&#8226;";
 }
@@ -618,12 +621,15 @@ function render() {
   const pageData = currentPage();
   const pageIndex = journal.pages.findIndex((page) => page.id === pageData.id);
   root.innerHTML = `
-    <div class="app-shell">
+    <div class="app-shell ${state.leftCollapsed ? "left-collapsed" : ""} ${state.rightCollapsed ? "right-collapsed" : ""}">
       <input id="image-import" type="file" accept="image/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
       <input class="hidden-file" id="pdf-import" type="file" accept="application/pdf,.pdf" />
       <input class="hidden-file" id="notebook-import" type="file" accept="application/json,.json" />
       <header class="topbar">
-        <div class="brand">Alex<span>&hearts;</span></div>
+        <div class="brand-wrap">
+          <button class="icon-button ${state.leftCollapsed ? "active" : ""}" data-action="toggle-left-panel" aria-label="${state.leftCollapsed ? "Show notebooks panel" : "Hide notebooks panel"}" aria-pressed="${state.leftCollapsed}" title="Toggle notebooks panel">${icon("menu")}</button>
+          <div class="brand">Alex<span>&hearts;</span></div>
+        </div>
         <button class="icon-button" data-action="go-library" aria-label="Notebook library">${icon("book")}</button>
         <div class="journal-switch-wrap">
           <button class="journal-switch" data-action="toggle-journal-menu" aria-expanded="${state.journalMenuOpen ? "true" : "false"}">${journal.title}<span>${icon("down")}</span></button>
@@ -643,6 +649,7 @@ function render() {
           ${imageToolButton()}
         </div>
         <div class="top-actions">
+          <button class="icon-button ${state.rightCollapsed ? "active" : ""}" data-action="toggle-right-panel" aria-label="${state.rightCollapsed ? "Show tools panel" : "Hide tools panel"}" aria-pressed="${state.rightCollapsed}" title="Toggle tools panel">${icon("panel")}</button>
           <button class="icon-button" data-action="undo" aria-label="Undo">${icon("undo")}</button>
           <button class="icon-button" data-action="redo" aria-label="Redo">${icon("redo")}</button>
           <button class="export-button" data-action="export-page-png">${icon("export")}<span>Export PNG</span></button>
@@ -2155,6 +2162,18 @@ function handleAction(action, event) {
   }
   if (action === "save-page-template") {
     saveCustomTemplate();
+    return;
+  }
+  if (action === "toggle-left-panel") {
+    state.leftCollapsed = !state.leftCollapsed;
+    render();
+    persist();
+    return;
+  }
+  if (action === "toggle-right-panel") {
+    state.rightCollapsed = !state.rightCollapsed;
+    render();
+    persist();
     return;
   }
   if (action === "clear-ink") {
@@ -3968,6 +3987,8 @@ function persist() {
       settings: state.settings,
       customTemplates: normalizeCustomTemplates(state.customTemplates),
       favoriteColors: state.favoriteColors,
+      leftCollapsed: state.leftCollapsed,
+      rightCollapsed: state.rightCollapsed,
       onboardingComplete: state.onboardingComplete,
       drawOffsetX: state.drawOffsetX,
       drawOffsetY: state.drawOffsetY,
