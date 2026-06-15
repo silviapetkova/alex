@@ -1,5 +1,5 @@
 const STORAGE_KEY = "alex-journal-prototype";
-const APP_VERSION = "v4";
+const APP_VERSION = "v5";
 
 const templates = [
   { title: "Notebook Pages", template: "notebook", icon: "&#9636;" },

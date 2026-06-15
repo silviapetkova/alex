@@ -1,10 +1,10 @@
-const CACHE_NAME = "alex-v4";
+const CACHE_NAME = "alex-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./src/app.js?v=4",
-  "./src/styles.css?v=4",
+  "./src/app.js?v=5",
+  "./src/styles.css?v=5",
   "./assets/alex-icon.svg"
 ];
 
