@@ -120,6 +120,8 @@ def test_notebook_core_features_are_wired():
         "data-planner-nav",
         "function monthPage",
         "function updateMonthEntry",
+        "function openDayFromMonth",
+        "data-month-goto",
         "function templateUseCount",
         "function visibleStickerItems",
         "function setStickerPack",

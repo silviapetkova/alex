@@ -360,13 +360,25 @@ def run():
         # --- Monthly: navigation shifts the month ---
         page.click("[data-template='month']")
         page.wait_for_selector(".month-grid")
-        if page.text_content(".month-cell.today b") != str(today.day):
+        if page.text_content(".month-cell.today .month-daynum") != str(today.day):
             failures.append("month grid 'today' cell wrong")
         page.fill(f"[data-month-day='{today.day}']", "dentist 3pm")
         page.wait_for_timeout(400)
         month_map = (active_page(page).get("templateData") or {}).get("monthly", {})
         if month_map.get(today.strftime("%Y-%m"), {}).get(str(today.day)) != "dentist 3pm":
             failures.append(f"month note not keyed by year-month: {list(month_map)}")
+
+        # --- Click a calendar date opens the Daily page for that date ---
+        page.click("[data-month-goto='12']")
+        page.wait_for_timeout(300)
+        opened = active_page(page)
+        if opened.get("template") != "daily":
+            failures.append(f"clicking a month day did not open the daily template ({opened.get('template')})")
+        if (opened.get("templateData") or {}).get("viewDates", {}).get("daily") != today.strftime("%Y-%m-12"):
+            failures.append(f"clicking day 12 did not set daily date to the 12th: {(opened.get('templateData') or {}).get('viewDates')}")
+
+        page.click("[data-template='month']")
+        page.wait_for_timeout(150)
         page.click("[data-planner-nav='monthly-prev']")
         page.wait_for_timeout(300)
         if page.locator(".month-cell.today").count() != 0:

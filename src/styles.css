@@ -1768,6 +1768,9 @@ button {
 .month-cell {
   min-height: 46px;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   border: 1px dashed #e0cec2;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.38);
@@ -1779,12 +1782,31 @@ button {
   background: transparent;
 }
 
-.month-cell b {
-  display: block;
+.month-cell .month-daynum {
+  display: inline-block;
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 1px 5px;
+  border-radius: 999px;
   font-family: "Comic Sans MS", "Segoe Print", cursive;
   font-size: 11px;
   font-weight: 400;
   color: #8a7f76;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+
+.month-cell .month-daynum:hover {
+  background: var(--pink);
+  color: #6d3040;
+}
+
+.month-cell .month-daynum:focus-visible {
+  outline: 2px solid var(--pink-deep);
+  outline-offset: 1px;
 }
 
 .month-cell.today {

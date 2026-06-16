@@ -1,5 +1,5 @@
 const STORAGE_KEY = "alex-journal-prototype";
-const APP_VERSION = "v10";
+const APP_VERSION = "v11";
 
 const templates = [
   { title: "Notebook Pages", template: "notebook", icon: "&#9636;" },
@@ -1338,7 +1338,7 @@ function monthPage() {
   const cells = Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1;
     const isToday = isThisMonth && day === now.getDate();
-    return `<div class="month-cell ${isToday ? "today" : ""}"><b>${day}</b><input class="month-note" data-month-day="${day}" value="${escapeHtml(notes[day] || "")}" maxlength="40" aria-label="Plan for day ${day}" /></div>`;
+    return `<div class="month-cell ${isToday ? "today" : ""}"><button class="month-daynum" data-month-goto="${day}" aria-label="Open daily page for day ${day}" title="Open this day">${day}</button><input class="month-note" data-month-day="${day}" value="${escapeHtml(notes[day] || "")}" maxlength="40" aria-label="Plan for day ${day}" /></div>`;
   }).join("");
   return `<h1>Monthly <span>&#9825;</span></h1>${plannerNavHtml("monthly", monthLabel, isThisMonth, "This month")}<div class="month-grid">${heads}${blanks}${cells}</div>`;
 }
@@ -1399,6 +1399,8 @@ function bindDelegatedEvents() {
     if (dailyTask) return toggleDailyTask(dailyTask.dataset.dailyTask);
     const plannerNav = event.target.closest?.("[data-planner-nav]");
     if (plannerNav) return shiftPlanner(plannerNav.dataset.plannerNav);
+    const monthGoto = event.target.closest?.("[data-month-goto]");
+    if (monthGoto) return openDayFromMonth(monthGoto.dataset.monthGoto);
     const stickerPack = event.target.closest?.("[data-sticker-pack]");
     if (stickerPack) return setStickerPack(stickerPack.dataset.stickerPack);
     const customTemplate = event.target.closest?.("[data-custom-template]");
@@ -1954,6 +1956,21 @@ function shiftPlanner(nav) {
   state.templateData = data;
   render();
   persist();
+}
+
+function openDayFromMonth(dayValue) {
+  const day = Number(dayValue);
+  if (!Number.isInteger(day) || day < 1 || day > 31) return;
+  const data = normalizeTemplateData(state.templateData);
+  const [year, month] = data.viewDates.monthly.split("-").map(Number);
+  const target = new Date(year, month - 1, day);
+  pushHistory();
+  data.viewDates.daily = isoDate(target);
+  state.templateData = data;
+  state.activeTemplate = "daily";
+  render();
+  persist();
+  showNotice(`Opened ${target.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`);
 }
 
 function setStickerPack(packId) {
