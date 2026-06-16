@@ -195,18 +195,22 @@ def run():
         if restored["left"] < 200 or restored["right"] < 200:
             failures.append(f"panels did not return after toggling back ({restored})")
 
-        # --- Page fits vertically on a short window (no cut-off bottom) ---
-        page.set_viewport_size({"width": 1280, "height": 680})
+        # --- Short window: the page bottom must stay reachable (fits or the
+        #     canvas scrolls), and pages keep a consistent width ---
+        page.set_viewport_size({"width": 1280, "height": 600})
         page.wait_for_timeout(250)
         vfit = page.evaluate(
             """() => {
               const bk = document.querySelector('.book-spread').getBoundingClientRect();
-              const st = document.querySelector('.journal-stage').getBoundingClientRect();
-              return { bottomCut: bk.bottom > st.bottom + 1 };
+              const st = document.querySelector('.journal-stage');
+              const sr = st.getBoundingClientRect();
+              const fits = bk.bottom <= sr.bottom + 1;
+              const scrollable = st.scrollHeight > st.clientHeight + 1;
+              return { reachable: fits || scrollable };
             }"""
         )
-        if vfit["bottomCut"]:
-            failures.append("notebook page bottom is cut off on a short window")
+        if not vfit["reachable"]:
+            failures.append("notebook page bottom is unreachable on a short window")
         page.set_viewport_size({"width": 1280, "height": 900})
         page.wait_for_timeout(150)
 

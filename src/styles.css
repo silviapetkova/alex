@@ -1113,12 +1113,11 @@ button {
 .journal-stage {
   min-height: 0;
   display: grid;
-  place-items: center;
+  place-content: safe center;
   padding: 28px 18px 16px;
-  overflow: hidden;
+  overflow: auto;
   overscroll-behavior: contain;
-  touch-action: none;
-  container-type: size;
+  container-type: inline-size;
 }
 
 .stage-transform {
@@ -1130,7 +1129,7 @@ button {
 }
 
 .book-spread {
-  width: min(920px, calc(100cqw - 8px), calc((100cqh - 8px) * 1.45));
+  width: min(920px, calc(100cqw - 8px));
   min-width: 0;
   aspect-ratio: 1.45;
   position: relative;
