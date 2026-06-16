@@ -1,5 +1,5 @@
 const STORAGE_KEY = "alex-journal-prototype";
-const APP_VERSION = "v11";
+const APP_VERSION = "v12";
 
 const templates = [
   { title: "Notebook Pages", template: "notebook", icon: "&#9636;" },
@@ -492,13 +492,17 @@ function isHabitChecked(row, day) {
   return state.habitChecks?.[key] ?? defaultHabitChecked(row, day);
 }
 
+const moodFaces = ["&#128516;", "&#128578;", "&#128528;", "&#128577;", "&#128546;"];
+const moodNames = ["great", "good", "okay", "low", "sad"];
+
 function moodCheckKey(day) {
   return `m-${day}`;
 }
 
 function getMoodForDay(day) {
   const key = moodCheckKey(day);
-  return state.moodChecks?.[key] ?? -1;
+  const value = state.moodChecks?.[key];
+  return Number.isInteger(value) && value >= 0 && value < moodFaces.length ? value : -1;
 }
 
 function currentJournal() {
@@ -1252,11 +1256,16 @@ function notebookPage(side) {
 }
 
 function plannerNavHtml(kind, label, isCurrent, currentLabel) {
+  const noun = kind === "daily" ? "day" : kind === "weekly" ? "week" : "month";
+  const views = [["daily", "Day"], ["week", "Week"], ["month", "Month"]];
   return `
+    <div class="planner-views" role="tablist" aria-label="Planner view">
+      ${views.map(([tpl, vlabel]) => `<button class="${state.activeTemplate === tpl ? "active" : ""}" data-planner-view="${tpl}" role="tab" aria-selected="${state.activeTemplate === tpl}">${vlabel}</button>`).join("")}
+    </div>
     <div class="planner-nav">
-      <button class="planner-arrow" data-planner-nav="${kind}-prev" aria-label="Previous ${kind === "daily" ? "day" : kind === "weekly" ? "week" : "month"}">&#9664;</button>
+      <button class="planner-arrow" data-planner-nav="${kind}-prev" aria-label="Previous ${noun}">&#9664;</button>
       <div class="planner-date ${isCurrent ? "is-current" : ""}">${label}${isCurrent ? ` &middot; ${currentLabel}` : ""}</div>
-      <button class="planner-arrow" data-planner-nav="${kind}-next" aria-label="Next ${kind === "daily" ? "day" : kind === "weekly" ? "week" : "month"}">&#9654;</button>
+      <button class="planner-arrow" data-planner-nav="${kind}-next" aria-label="Next ${noun}">&#9654;</button>
       ${isCurrent ? "" : `<button class="planner-today" data-planner-nav="${kind}-today">${currentLabel}</button>`}
     </div>`;
 }
@@ -1272,7 +1281,7 @@ function weeklyPage() {
   const isThisWeek = data.viewDates.weekly === weekStartIso(new Date());
   const rangeLabel = `${shortDateLabel(dates[0])} - ${shortDateLabel(dates[6])}`;
   return `<h1>Cozy Week <span>&#9825;</span></h1>${plannerNavHtml("weekly", rangeLabel, isThisWeek, "This week")}<div class="week-list">${dayNames.map((day, index) => `
-    <div class="day-row ${isoDate(dates[index]) === todayIso ? "today" : ""}"><div class="date-card ${day.toLowerCase()}"><span>${day}</span><strong>${dates[index].getDate()}</strong></div><div class="day-entries">${[0, 1].map((slot) => `<input class="day-entry" data-week-day="${index}" data-week-slot="${slot}" value="${escapeHtml(week[index][slot])}" placeholder="${slot === 0 ? hints[index] : "Add a note"}" maxlength="80" />`).join("")}</div></div>
+    <div class="day-row ${isoDate(dates[index]) === todayIso ? "today" : ""}"><button class="date-card ${day.toLowerCase()}" data-week-goto="${index}" aria-label="Open ${day} ${dates[index].getDate()}" title="Open this day"><span>${day}</span><strong>${dates[index].getDate()}</strong></button><div class="day-entries">${[0, 1].map((slot) => `<input class="day-entry" data-week-day="${index}" data-week-slot="${slot}" value="${escapeHtml(week[index][slot])}" placeholder="${slot === 0 ? hints[index] : "Add a note"}" maxlength="80" />`).join("")}</div></div>
   `).join("")}</div>`;
 }
 
@@ -1294,9 +1303,11 @@ function trackerPage() {
     <h2>habit tracker</h2>
     <div class="habit-scroll"><div class="habit-grid habit-${state.habitLayout}"><div></div>${days.map((day) => `<b>${day}</b>`).join("")}${rows.map((habit, row) => `<span class="habit-row-label"><button class="habit-name" data-habit-name="${row}" aria-label="Rename ${escapeHtml(habit)}">${escapeHtml(habit)}</button><button class="habit-remove" data-habit-remove="${row}" aria-label="Remove ${escapeHtml(habit)}">-</button></span>${days.map((day, index) => `<button class="habit-check ${isHabitChecked(row, index) ? "filled" : ""}" data-habit-row="${row}" data-habit-day="${index}" aria-pressed="${isHabitChecked(row, index)}" aria-label="${escapeHtml(habit)} ${day}"></button>`).join("")}`).join("")}</div></div>
     <h2>mood tracker</h2>
-    <div class="moods">${["&#9786;", "&#9787;", "-", "&#9675;", "&#9825;", "&#9685;", "&#9733;"].map((emoji, moodIndex) => {
-      const dayLabel = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][moodIndex];
-      return `<div class="mood-day"><button class="mood-button ${getMoodForDay(moodIndex) === moodIndex ? "selected" : ""}" data-mood-day="${moodIndex}" data-mood-value="${moodIndex}" aria-pressed="${getMoodForDay(moodIndex) === moodIndex}" aria-label="Mood ${moodIndex} on ${dayLabel}">${emoji}</button><small>${dayLabel}</small></div>`;
+    <div class="moods">${["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayLabel, day) => {
+      const level = getMoodForDay(day);
+      const face = level >= 0 && level < moodFaces.length ? moodFaces[level] : "&#9675;";
+      const name = level >= 0 && level < moodFaces.length ? moodNames[level] : "no mood set";
+      return `<div class="mood-day"><button class="mood-button mood-level-${level >= 0 ? level : "none"}" data-mood-day="${day}" aria-label="${dayLabel}: ${name}, tap to change">${face}</button><small>${dayLabel}</small></div>`;
     }).join("")}</div>
     <div class="notes-box"><div class="tape-label small">notes</div></div>
   `;
@@ -1388,7 +1399,11 @@ function bindDelegatedEvents() {
     const habitLayout = event.target.closest?.("[data-habit-layout]");
     if (habitLayout) return setHabitLayout(habitLayout.dataset.habitLayout);
     const moodButton = event.target.closest?.("[data-mood-day]");
-    if (moodButton) return toggleMoodDay(moodButton.dataset.moodDay, moodButton.dataset.moodValue);
+    if (moodButton) return cycleMood(moodButton.dataset.moodDay);
+    const plannerView = event.target.closest?.("[data-planner-view]");
+    if (plannerView) return switchPlannerView(plannerView.dataset.plannerView);
+    const weekGoto = event.target.closest?.("[data-week-goto]");
+    if (weekGoto) return openDayFromWeek(weekGoto.dataset.weekGoto);
     const ratingButton = event.target.closest?.("[data-rating]");
     if (ratingButton) return setReadingRating(ratingButton.dataset.readingIndex, ratingButton.dataset.rating);
     const readingAdd = event.target.closest?.("[data-reading-add]");
@@ -1799,17 +1814,41 @@ function setHabitLayout(layout) {
   persist();
 }
 
-function toggleMoodDay(dayValue, moodValue) {
+function cycleMood(dayValue) {
   const day = Number(dayValue);
-  const mood = Number(moodValue);
-  if (!Number.isInteger(day) || !Number.isInteger(mood)) return;
-  if (day < 0 || day >= 7 || mood < 0 || mood > 6) return;
+  if (!Number.isInteger(day) || day < 0 || day >= 7) return;
   pushHistory();
   state.moodChecks = normalizeMoodChecks(state.moodChecks);
   const key = moodCheckKey(day);
-  state.moodChecks[key] = getMoodForDay(day) === mood ? -1 : mood;
+  const next = getMoodForDay(day) + 1; // -1 -> 0 ... 4 -> 5(clear)
+  if (next >= moodFaces.length) delete state.moodChecks[key];
+  else state.moodChecks[key] = next;
   render();
   persist();
+}
+
+function switchPlannerView(template) {
+  if (!["daily", "week", "month"].includes(template)) return;
+  if (state.activeTemplate === template) return;
+  pushHistory();
+  state.activeTemplate = template;
+  render();
+  persist();
+}
+
+function openDayFromWeek(indexValue) {
+  const index = Number(indexValue);
+  if (!Number.isInteger(index) || index < 0 || index > 6) return;
+  const data = normalizeTemplateData(state.templateData);
+  const target = parseIsoDate(data.viewDates.weekly);
+  target.setDate(target.getDate() + index);
+  pushHistory();
+  data.viewDates.daily = isoDate(target);
+  state.templateData = data;
+  state.activeTemplate = "daily";
+  render();
+  persist();
+  showNotice(`Opened ${target.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`);
 }
 
 function blankReadingEntry() {

@@ -78,21 +78,22 @@ def run():
         if again != before:
             failures.append(f"habit double-toggle broken: {before} -> {after} -> {again}")
 
-        # --- Mood tracker: select + deselect, persisted ---
+        # --- Mood tracker: tap cycles through moods, persisted ---
         mood = "[data-mood-day='2']"
-        page.click(mood)
+        page.click(mood)  # none -> level 0
         page.wait_for_timeout(300)
-        cls = page.get_attribute(mood, "class") or ""
-        if "selected" not in cls:
-            failures.append("mood button did not select on click")
-        saved = active_page(page).get("moodChecks", {})
-        if saved.get("m-2") != 2:
-            failures.append(f"mood not persisted, moodChecks={saved}")
-        page.click(mood)
+        if (active_page(page).get("moodChecks", {})).get("m-2") != 0:
+            failures.append(f"mood did not set to first level, moodChecks={active_page(page).get('moodChecks')}")
+        page.click(mood)  # level 0 -> 1
         page.wait_for_timeout(300)
-        cls = page.get_attribute(mood, "class") or ""
-        if "selected" in cls:
-            failures.append("mood button did not deselect on second click")
+        if (active_page(page).get("moodChecks", {})).get("m-2") != 1:
+            failures.append("mood did not advance on second tap")
+        for _ in range(4):  # 1 -> 2 -> 3 -> 4 -> cleared
+            page.click(mood)
+            page.wait_for_timeout(150)
+        page.wait_for_timeout(400)  # let the debounced save flush
+        if "m-2" in active_page(page).get("moodChecks", {}):
+            failures.append("mood did not clear after cycling past the last level")
 
         # --- Ink survives re-renders ---
         page.click("[data-tool='pen']")

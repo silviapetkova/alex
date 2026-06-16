@@ -1270,11 +1270,27 @@ button {
 
 .date-card {
   height: 55px;
+  width: 100%;
   display: grid;
   place-items: center;
   border-radius: 7px;
   border: 1px solid rgba(90, 70, 60, 0.08);
   background: #ffdadd;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  color: inherit;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.date-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(157, 71, 85, 0.18);
+}
+
+.date-card:focus-visible {
+  outline: 2px solid var(--pink-deep);
+  outline-offset: 2px;
 }
 
 .date-card span {
@@ -1492,8 +1508,9 @@ button {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  border: 1px solid #9c8579;
-  background: #ffd7d8;
+  border: 1px solid #c9bdb4;
+  background: #fffdf7;
+  color: #c9bdb4;
   font-size: 18px;
   padding: 0;
   cursor: pointer;
@@ -1503,19 +1520,18 @@ button {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.mood-day:nth-child(2) .mood-button { background: #ffc092; }
-.mood-day:nth-child(3) .mood-button { background: #f8d66d; }
-.mood-day:nth-child(4) .mood-button { background: #9edbb8; }
-.mood-day:nth-child(5) .mood-button { background: #a9d1e8; }
-.mood-day:nth-child(6) .mood-button { background: #c7aae8; }
+.mood-button.mood-level-0 { background: #cdeccd; border-color: #8fc78f; color: #2e6448; }
+.mood-button.mood-level-1 { background: #e3f0c8; border-color: #b6cf86; color: #4d6620; }
+.mood-button.mood-level-2 { background: #fdeecb; border-color: #e6c878; color: #7d5e1f; }
+.mood-button.mood-level-3 { background: #ffe0cc; border-color: #f0b288; color: #8a4a25; }
+.mood-button.mood-level-4 { background: #ffd6dc; border-color: #e69aa8; color: #8a3046; }
 
 .mood-button:hover {
   transform: scale(1.06);
 }
 
-.mood-button.selected {
-  border: 2px solid var(--pink-deep);
-  box-shadow: 0 2px 8px rgba(157, 71, 85, 0.35);
+.mood-button:not(.mood-level-none) {
+  border-width: 2px;
 }
 
 .mood-button:focus-visible {
@@ -1561,6 +1577,42 @@ button {
   font-size: 15px;
   color: #8a7f76;
   margin: -8px 0 12px;
+}
+
+.planner-views {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 10px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(125, 121, 117, 0.12);
+}
+
+.planner-views button {
+  min-height: 26px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6f635c;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  touch-action: manipulation;
+}
+
+.planner-views button.active {
+  background: #fffdf7;
+  color: var(--pink-deep);
+  box-shadow: 0 1px 3px rgba(125, 71, 85, 0.18);
+}
+
+.planner-views button:focus-visible {
+  outline: 2px solid var(--pink-deep);
+  outline-offset: 1px;
 }
 
 .planner-nav {
