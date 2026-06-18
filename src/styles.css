@@ -1745,6 +1745,16 @@ button {
   appearance: none;
 }
 
+.daily-task-text::placeholder,
+.daily-schedule-entry::placeholder,
+.day-entry::placeholder,
+.daily-joys::placeholder,
+.month-note::placeholder,
+.reading-input::placeholder {
+  color: #bcb2aa;
+  font-style: italic;
+}
+
 .daily-task-text:focus,
 .daily-schedule-entry:focus,
 .day-entry:focus {
